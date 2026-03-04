@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
   X,
   FileCode2,
   FileJson,
+  FileType,
   MoreHorizontal,
   Play,
   GitBranch,
@@ -14,16 +15,20 @@ import {
   Check,
   Terminal,
   Sparkles,
-  ChevronRight,
   Bot,
-  Zap,
+  ChevronRight,
+  Save,
+  Undo2,
+  Redo2,
+  WrapText,
 } from "lucide-react"
 
 interface OpenTab {
   name: string
   language: string
   content: string
-  modified?: boolean
+  modified: boolean
+  savedContent: string
 }
 
 const FILE_CONTENTS: Record<string, { language: string; content: string }> = {
@@ -58,13 +63,14 @@ export default function Home() {
   "layout.tsx": {
     language: "tsx",
     content: `import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+const geist = Geist({ subsets: ["latin"] })
+const geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "My App",
+  title: "Forge App",
   description: "Built with Forge IDE",
 }
 
@@ -75,7 +81,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={geist.className}>
         {children}
       </body>
     </html>
@@ -84,19 +90,20 @@ export default function RootLayout({
   },
   "globals.css": {
     language: "css",
-    content: `@tailwind base;
-@tailwind components;
-@tailwind utilities;
+    content: `@import "tailwindcss";
 
 :root {
-  --background: #0a0a12;
-  --foreground: #e8e8ef;
+  --background: oklch(0.1 0.005 260);
+  --foreground: oklch(0.95 0 0);
+  --primary: oklch(0.65 0.2 145);
+  --primary-foreground: oklch(0.1 0.005 260);
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  body {
+    color: var(--foreground);
+    background: var(--background);
+  }
 }`,
   },
   "route.ts": {
@@ -105,13 +112,14 @@ body {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json()
+    const { messages, model } = await req.json()
 
-    // Process chat messages with AI
-    const response = await generateAIResponse(messages)
+    // Process chat messages with selected AI model
+    const response = await generateAIResponse(messages, model)
 
     return NextResponse.json({ response })
   } catch (error) {
+    console.error("API Error:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -119,8 +127,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function generateAIResponse(messages: any[]) {
-  // AI integration goes here
+async function generateAIResponse(messages: any[], model: string) {
+  // AI integration with dynamic model selection
   return "Hello from the API!"
 }`,
   },
@@ -131,18 +139,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium",
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         outline: "border border-input bg-background hover:bg-accent",
         ghost: "hover:bg-accent hover:text-accent-foreground",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: {
@@ -190,6 +200,17 @@ export function formatDate(date: Date): string {
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export function debounce<T extends (...args: any[]) => void>(
+  fn: T,
+  ms: number
+): (...args: Parameters<T>) => void {
+  let timer: ReturnType<typeof setTimeout>
+  return (...args) => {
+    clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), ms)
+  }
 }`,
   },
   "package.json": {
@@ -199,27 +220,61 @@ export function sleep(ms: number): Promise<void> {
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "next": "^16.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.5.0"
+    "next": "^16.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "ai": "^6.0.0",
+    "tailwindcss": "^4.2.0",
+    "typescript": "^5.7.0"
   }
+}`,
+  },
+  "db.ts": {
+    language: "ts",
+    content: `import { createClient } from "@supabase/supabase-js"
+
+const supabaseUrl = process.env.SUPABASE_URL!
+const supabaseKey = process.env.SUPABASE_ANON_KEY!
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
+
+export async function getUsers() {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function createProject(name: string, ownerId: string) {
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({ name, owner_id: ownerId })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
 }`,
   },
 }
 
-// Ghost text copilot suggestions per file
 const COPILOT_SUGGESTIONS: Record<string, { line: number; suggestion: string }> = {
   "page.tsx": { line: 18, suggestion: '          <Button variant="secondary">Learn More</Button>' },
-  "route.ts": { line: 20, suggestion: '  const result = await fetch("https://api.openai.com/v1/chat/completions", {' },
-  "utils.ts": { line: 18, suggestion: "export function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {" },
+  "route.ts": { line: 22, suggestion: '  const result = await fetch(process.env.AI_API_URL!, {' },
+  "utils.ts": { line: 20, suggestion: "export function throttle<T extends (...args: any[]) => void>(fn: T, ms: number) {" },
+  "db.ts": { line: 27, suggestion: "export async function deleteProject(id: string) {" },
 }
 
 function tokenize(code: string, language: string) {
@@ -227,9 +282,10 @@ function tokenize(code: string, language: string) {
   const keywords = [
     "import", "export", "from", "default", "function", "return", "const",
     "let", "var", "if", "else", "try", "catch", "async", "await", "new",
-    "type", "interface", "extends", "class", "typeof", "instanceof",
+    "type", "interface", "extends", "class", "typeof", "instanceof", "throw",
+    "switch", "case", "break", "continue", "for", "while", "of", "in",
   ]
-  const builtins = ["true", "false", "null", "undefined", "void", "string", "number", "boolean", "any"]
+  const builtins = ["true", "false", "null", "undefined", "void", "string", "number", "boolean", "any", "never"]
 
   const lines = code.split("\n")
   lines.forEach((line, lineIndex) => {
@@ -259,7 +315,7 @@ function tokenize(code: string, language: string) {
         i = j
         continue
       }
-      if (line[i] === "<" && language === "tsx") {
+      if (line[i] === "<" && (language === "tsx" || language === "jsx")) {
         const tagMatch = line.slice(i).match(/^<\/?([A-Za-z][A-Za-z0-9.]*)/)
         if (tagMatch) {
           tokens.push({ text: line[i], type: "plain" })
@@ -273,6 +329,13 @@ function tokenize(code: string, language: string) {
           continue
         }
       }
+      if (line[i] === "@" && language === "css") {
+        let j = i
+        while (j < line.length && /[\w@-]/.test(line[j])) j++
+        tokens.push({ text: line.slice(i, j), type: "keyword" })
+        i = j
+        continue
+      }
       if (/[a-zA-Z_$]/.test(line[i])) {
         let j = i
         while (j < line.length && /[\w$]/.test(line[j])) j++
@@ -284,6 +347,8 @@ function tokenize(code: string, language: string) {
         } else if (i > 0 && line[i - 1] === ".") {
           tokens.push({ text: word, type: "function" })
         } else if (j < line.length && line[j] === "(") {
+          tokens.push({ text: word, type: "function" })
+        } else if (word === "process" || word === "console" || word === "Math" || word === "JSON") {
           tokens.push({ text: word, type: "function" })
         } else {
           tokens.push({ text: word, type: "variable" })
@@ -304,12 +369,18 @@ function getTokenClass(type: string) {
     case "string": return "text-syntax-string"
     case "function": return "text-syntax-function"
     case "variable": return "text-syntax-variable"
-    case "comment": return "text-syntax-comment"
+    case "comment": return "text-syntax-comment italic"
     case "number": return "text-syntax-number"
     case "tag": return "text-syntax-tag"
     case "attr": return "text-syntax-attr"
-    default: return "text-foreground"
+    default: return "text-foreground/80"
   }
+}
+
+function getFileIcon(name: string) {
+  if (name.endsWith(".json")) return <FileJson className="size-3.5 text-syntax-variable" />
+  if (name.endsWith(".css")) return <FileType className="size-3.5 text-syntax-keyword" />
+  return <FileCode2 className="size-3.5 text-syntax-function" />
 }
 
 export function CodeEditor({
@@ -320,13 +391,24 @@ export function CodeEditor({
   onFileChange: (file: string) => void
 }) {
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([
-    { name: "page.tsx", language: "tsx", content: FILE_CONTENTS["page.tsx"].content },
-    { name: "layout.tsx", language: "tsx", content: FILE_CONTENTS["layout.tsx"].content },
+    { name: "page.tsx", language: "tsx", content: FILE_CONTENTS["page.tsx"].content, modified: false, savedContent: FILE_CONTENTS["page.tsx"].content },
+    { name: "layout.tsx", language: "tsx", content: FILE_CONTENTS["layout.tsx"].content, modified: false, savedContent: FILE_CONTENTS["layout.tsx"].content },
   ])
   const [copied, setCopied] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
-  const [showCopilotHint, setShowCopilotHint] = useState(true)
+  const [terminalTab, setTerminalTab] = useState<"terminal" | "output" | "problems">("terminal")
   const [copilotEnabled, setCopilotEnabled] = useState(true)
+  const [wordWrap, setWordWrap] = useState(false)
+  const [cursorLine, setCursorLine] = useState(1)
+  const [cursorCol, setCursorCol] = useState(1)
+  const [terminalInput, setTerminalInput] = useState("")
+  const [terminalHistory, setTerminalHistory] = useState([
+    { type: "cmd" as const, text: "pnpm dev --turbopack" },
+    { type: "out" as const, text: "  Next.js 16.1.6 (turbopack)" },
+    { type: "out" as const, text: "  Local: http://localhost:3000" },
+    { type: "success" as const, text: "  Ready in 847ms" },
+  ])
+  const editorRef = useRef<HTMLDivElement>(null)
 
   const currentTab = openTabs.find((t) => t.name === activeFile)
   const content = currentTab?.content ?? FILE_CONTENTS[activeFile]?.content ?? "// No content"
@@ -338,24 +420,43 @@ export function CodeEditor({
 
   const copilotSuggestion = copilotEnabled ? COPILOT_SUGGESTIONS[activeFile] : null
 
-  const handleCloseTab = (name: string, e: React.MouseEvent) => {
+  const openFile = useCallback((name: string) => {
+    onFileChange(name)
+    if (!openTabs.find((t) => t.name === name)) {
+      const file = FILE_CONTENTS[name]
+      if (file) {
+        setOpenTabs((prev) => [...prev, { name, language: file.language, content: file.content, modified: false, savedContent: file.content }])
+      }
+    }
+  }, [onFileChange, openTabs])
+
+  const closeTab = useCallback((name: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const filtered = openTabs.filter((t) => t.name !== name)
     setOpenTabs(filtered)
     if (activeFile === name && filtered.length > 0) {
       onFileChange(filtered[filtered.length - 1].name)
     }
-  }
+  }, [openTabs, activeFile, onFileChange])
 
-  const handleTabClick = (name: string) => {
-    onFileChange(name)
-    if (!openTabs.find((t) => t.name === name)) {
-      const file = FILE_CONTENTS[name]
-      if (file) {
-        setOpenTabs((prev) => [...prev, { name, language: file.language, content: file.content }])
+  const handleSave = useCallback(() => {
+    setOpenTabs((prev) =>
+      prev.map((t) =>
+        t.name === activeFile ? { ...t, modified: false, savedContent: t.content } : t
+      )
+    )
+  }, [activeFile])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault()
+        handleSave()
       }
     }
-  }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [handleSave])
 
   const handleCopyAll = () => {
     navigator.clipboard.writeText(content)
@@ -363,34 +464,47 @@ export function CodeEditor({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const handleTerminalCommand = () => {
+    if (!terminalInput.trim()) return
+    const cmd = terminalInput.trim()
+    setTerminalHistory((prev) => [
+      ...prev,
+      { type: "cmd" as const, text: cmd },
+      { type: "out" as const, text: `> ${cmd}` },
+      { type: "success" as const, text: "  Done." },
+    ])
+    setTerminalInput("")
+  }
+
+  const problems = [
+    { type: "warn" as const, file: "page.tsx", line: 5, text: "Unused import: CardHeader" },
+  ]
+
   return (
     <div className="flex flex-col h-full bg-editor-bg">
       {/* Tab bar */}
-      <div className="flex items-center bg-panel-header border-b border-border shrink-0 overflow-x-auto">
-        <div className="flex items-center min-w-0">
+      <div className="flex items-center bg-panel-header border-b border-border shrink-0">
+        <div className="flex items-center min-w-0 flex-1 overflow-x-auto">
           {openTabs.map((tab) => (
             <button
               key={tab.name}
-              onClick={() => handleTabClick(tab.name)}
+              onClick={() => openFile(tab.name)}
               className={cn(
-                "flex items-center gap-1.5 px-3 h-9 text-xs border-r border-border whitespace-nowrap transition-colors min-w-0 shrink-0",
+                "flex items-center gap-1.5 px-3 h-9 text-xs border-r border-border whitespace-nowrap transition-colors min-w-0 shrink-0 group",
                 activeFile === tab.name
-                  ? "bg-editor-bg text-foreground border-t-2 border-t-primary"
+                  ? "bg-editor-bg text-foreground"
                   : "text-muted-foreground hover:text-foreground bg-panel-header"
               )}
             >
-              {tab.language === "json" ? (
-                <FileJson className="size-3.5 shrink-0 text-syntax-variable" />
-              ) : (
-                <FileCode2 className="size-3.5 shrink-0 text-syntax-function" />
-              )}
-              <span className="truncate">{tab.name}</span>
+              {activeFile === tab.name && <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary" />}
+              {getFileIcon(tab.name)}
+              <span className="truncate max-w-[100px]">{tab.name}</span>
               {tab.modified && (
-                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
               )}
               <button
-                onClick={(e) => handleCloseTab(tab.name, e)}
-                className="p-0.5 rounded hover:bg-accent/50 shrink-0 ml-1"
+                onClick={(e) => closeTab(tab.name, e)}
+                className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent/50 shrink-0 ml-0.5 transition-opacity"
                 aria-label={`Close ${tab.name}`}
               >
                 <X className="size-3" />
@@ -398,16 +512,20 @@ export function CodeEditor({
             </button>
           ))}
         </div>
-        <div className="flex-1" />
-        <div className="flex items-center gap-0.5 px-2 shrink-0">
-          {/* Copilot toggle */}
+        <div className="flex items-center gap-0.5 px-1.5 shrink-0 border-l border-border">
+          <button
+            onClick={() => setWordWrap(!wordWrap)}
+            className={cn("p-1.5 rounded transition-colors", wordWrap ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground")}
+            title="Word wrap"
+            aria-label="Toggle word wrap"
+          >
+            <WrapText className="size-3.5" />
+          </button>
           <button
             onClick={() => setCopilotEnabled(!copilotEnabled)}
             className={cn(
-              "flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-colors",
-              copilotEnabled
-                ? "text-primary bg-primary/10"
-                : "text-muted-foreground hover:text-foreground"
+              "flex items-center gap-1 px-1.5 py-1 rounded text-[10px] font-medium transition-colors",
+              copilotEnabled ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
             )}
             title={copilotEnabled ? "Copilot: On" : "Copilot: Off"}
           >
@@ -419,100 +537,82 @@ export function CodeEditor({
             className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Copy code"
           >
-            {copied ? (
-              <Check className="size-3.5 text-primary" />
-            ) : (
-              <Copy className="size-3.5" />
-            )}
+            {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
           </button>
-          <button
-            className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="More options"
-          >
+          <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" aria-label="More options">
             <MoreHorizontal className="size-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Copilot banner */}
-      {copilotEnabled && showCopilotHint && copilotSuggestion && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/10 shrink-0">
-          <Bot className="size-3 text-primary shrink-0" />
-          <span className="text-[10px] text-primary/80 flex-1">
-            Copilot has a suggestion on line {copilotSuggestion.line}. Press <kbd className="px-1 py-0.5 rounded bg-primary/10 border border-primary/20 text-[9px] mx-0.5">Tab</kbd> to accept.
-          </span>
-          <button
-            onClick={() => setShowCopilotHint(false)}
-            className="p-0.5 rounded hover:bg-primary/10 text-primary/60"
-          >
-            <X className="size-3" />
-          </button>
-        </div>
-      )}
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 px-3 h-7 bg-editor-bg border-b border-border/30 text-[11px] text-muted-foreground shrink-0 overflow-x-auto">
+        <span className="hover:text-foreground cursor-pointer transition-colors">app</span>
+        <ChevronRight className="size-3 shrink-0" />
+        <span className="text-foreground font-medium">{activeFile}</span>
+        {currentTab?.modified && (
+          <span className="text-primary text-[9px] ml-1">(modified)</span>
+        )}
+      </div>
 
       {/* Editor body */}
-      <ScrollArea className="flex-1">
+      <div ref={editorRef} className="flex-1 overflow-auto relative" onClick={() => setCursorLine(1)}>
         <div className="flex min-h-full">
           {/* Gutter */}
-          <div className="flex flex-col items-end pt-3 pb-3 px-2 select-none shrink-0 bg-editor-bg border-r border-border/30">
+          <div className="flex flex-col items-end pt-2 pb-8 px-2 select-none shrink-0 bg-editor-bg border-r border-border/20 sticky left-0 z-10">
             {Array.from({ length: lineCount }, (_, i) => (
-              <div key={i} className="flex items-center h-5">
+              <div key={i} className="flex items-center h-[22px]">
                 <span
                   className={cn(
-                    "text-[11px] font-mono leading-5 min-w-[2ch] text-right",
-                    copilotSuggestion?.line === i + 1
-                      ? "text-primary"
-                      : "text-editor-gutter"
+                    "text-[11px] font-mono leading-[22px] min-w-[3ch] text-right transition-colors",
+                    cursorLine === i + 1 ? "text-foreground" :
+                    copilotSuggestion?.line === i + 1 ? "text-primary/60" :
+                    "text-editor-gutter"
                   )}
                 >
                   {i + 1}
                 </span>
               </div>
             ))}
-            {/* Ghost line for copilot suggestion */}
-            {copilotEnabled && copilotSuggestion && (
-              <div className="h-5" />
-            )}
           </div>
 
-          {/* Code */}
-          <div className="flex-1 pt-3 pb-3 px-4 overflow-x-auto relative">
-            <pre>
-              <code className="text-[13px] font-mono leading-5">
+          {/* Code content */}
+          <div className={cn("flex-1 pt-2 pb-8 px-4 relative", wordWrap ? "whitespace-pre-wrap break-all" : "overflow-x-auto")}>
+            {/* Highlight current line */}
+            <div
+              className="absolute left-0 right-0 h-[22px] bg-editor-line/40 pointer-events-none transition-transform"
+              style={{ top: `${(cursorLine - 1) * 22 + 8}px` }}
+            />
+            <pre className={cn(wordWrap && "whitespace-pre-wrap break-all")}>
+              <code className="text-[13px] font-mono leading-[22px]">
                 {tokens.map((token, i) => (
-                  <span key={i} className={getTokenClass(token.type)}>
-                    {token.text}
-                  </span>
+                  <span key={i} className={getTokenClass(token.type)}>{token.text}</span>
                 ))}
               </code>
             </pre>
 
-            {/* Copilot ghost text overlay */}
+            {/* Copilot ghost text */}
             {copilotEnabled && copilotSuggestion && (
               <div
                 className="absolute left-4 pointer-events-none"
-                style={{ top: `${(copilotSuggestion.line - 1) * 20 + 12 + 20}px` }}
+                style={{ top: `${copilotSuggestion.line * 22 + 8}px` }}
               >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[13px] font-mono leading-5 text-primary/30 italic">
-                    {copilotSuggestion.suggestion}
-                  </span>
-                  <span className="text-[8px] px-1 py-0.5 rounded bg-primary/10 text-primary/50 font-sans">
-                    Tab
-                  </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-mono leading-[22px] text-primary/25 italic">{copilotSuggestion.suggestion}</span>
+                  <span className="text-[8px] px-1 py-0.5 rounded bg-primary/8 text-primary/40 font-sans border border-primary/10">Tab</span>
                 </div>
               </div>
             )}
           </div>
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Status bar */}
       <div className="flex items-center justify-between px-3 h-7 bg-primary/8 border-t border-border text-[10px] text-muted-foreground shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowTerminal(!showTerminal)}
-            className="flex items-center gap-1 hover:text-foreground transition-colors"
+            className={cn("flex items-center gap-1 transition-colors", showTerminal ? "text-primary" : "hover:text-foreground")}
           >
             <Terminal className="size-3" />
             <span>Terminal</span>
@@ -527,32 +627,50 @@ export function CodeEditor({
               Copilot
             </span>
           )}
+          {currentTab?.modified && (
+            <button onClick={handleSave} className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors">
+              <Save className="size-2.5" />
+              <span>Save</span>
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-3">
-          <span>{language.toUpperCase()}</span>
-          <span>UTF-8</span>
-          <span>
-            Ln {lineCount}, Col 1
-          </span>
+          <span className="hidden sm:inline">{language.toUpperCase()}</span>
+          <span className="hidden sm:inline">UTF-8</span>
+          <span>Ln {cursorLine}, Col {cursorCol}</span>
+          {problems.length > 0 && (
+            <button
+              onClick={() => { setShowTerminal(true); setTerminalTab("problems") }}
+              className="flex items-center gap-1 text-amber-400"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              {problems.length}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Terminal panel */}
       {showTerminal && (
-        <div className="h-36 border-t border-border bg-background shrink-0">
-          <div className="flex items-center justify-between px-3 h-8 bg-panel-header border-b border-border">
-            <div className="flex items-center gap-4">
-              <button className="flex items-center gap-1.5 text-xs text-foreground font-medium border-b-2 border-primary pb-0.5">
-                <Terminal className="size-3 text-primary" />
-                Terminal
-              </button>
-              <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Output
-              </button>
-              <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Problems
-                <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-500/15 text-amber-400">1</span>
-              </button>
+        <div className="h-44 border-t border-border bg-background shrink-0 flex flex-col">
+          <div className="flex items-center justify-between px-3 h-8 bg-panel-header border-b border-border shrink-0">
+            <div className="flex items-center gap-0.5">
+              {(["terminal", "output", "problems"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setTerminalTab(tab)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium capitalize transition-colors",
+                    terminalTab === tab ? "text-foreground bg-accent" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {tab === "terminal" && <Terminal className="size-3" />}
+                  {tab}
+                  {tab === "problems" && problems.length > 0 && (
+                    <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-500/15 text-amber-400 leading-none">{problems.length}</span>
+                  )}
+                </button>
+              ))}
             </div>
             <button
               onClick={() => setShowTerminal(false)}
@@ -562,27 +680,58 @@ export function CodeEditor({
               <X className="size-3.5" />
             </button>
           </div>
-          <div className="p-2 font-mono text-xs text-muted-foreground overflow-y-auto h-[calc(100%-32px)]">
-            <p>
-              <span className="text-primary/70">$</span>{" "}
-              <span className="text-foreground">forge dev</span>
-            </p>
-            <p className="text-primary mt-1">
-              {"  "}Forge IDE v2.0 - Multi-Agent AI Engine
-            </p>
-            <p className="text-foreground mt-0.5">
-              {"  "}Ready in 0.8s
-            </p>
-            <p className="mt-0.5">
-              {"  "}Local: http://localhost:3000
-            </p>
-            <p className="mt-0.5">
-              {"  "}Network: http://192.168.1.42:3000
-            </p>
-            <p className="text-primary/60 mt-1.5 animate-pulse">
-              {"  "}Copilot active with Gemini 3 Flash
-            </p>
+
+          <div className="flex-1 overflow-y-auto p-2 font-mono text-xs">
+            {terminalTab === "terminal" && (
+              <>
+                {terminalHistory.map((entry, i) => (
+                  <div key={i} className="leading-relaxed">
+                    {entry.type === "cmd" ? (
+                      <span><span className="text-primary">$</span> <span className="text-foreground">{entry.text}</span></span>
+                    ) : entry.type === "success" ? (
+                      <span className="text-primary/80">{entry.text}</span>
+                    ) : (
+                      <span className="text-muted-foreground">{entry.text}</span>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+            {terminalTab === "output" && (
+              <div className="text-muted-foreground">
+                <p className="text-primary">Forge IDE v3.0 - Cloud Engine</p>
+                <p>Compiled client and server in 1.2s</p>
+                <p>Watching for file changes...</p>
+              </div>
+            )}
+            {terminalTab === "problems" && (
+              <div>
+                {problems.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2 px-1 py-1 hover:bg-accent/20 rounded transition-colors cursor-pointer">
+                    <span className={cn("text-[9px] font-semibold px-1 py-0.5 rounded", p.type === "warn" ? "text-amber-400 bg-amber-500/10" : "text-red-400 bg-red-500/10")}>
+                      {p.type === "warn" ? "WARN" : "ERR"}
+                    </span>
+                    <span className="text-foreground">{p.text}</span>
+                    <span className="text-muted-foreground ml-auto shrink-0">{p.file}:{p.line}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
+          {terminalTab === "terminal" && (
+            <div className="flex items-center gap-2 px-3 py-1.5 border-t border-border shrink-0">
+              <span className="text-primary text-xs font-mono shrink-0">$</span>
+              <input
+                type="text"
+                value={terminalInput}
+                onChange={(e) => setTerminalInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleTerminalCommand()}
+                placeholder="Enter command..."
+                className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

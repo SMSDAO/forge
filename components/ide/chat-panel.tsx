@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Send,
   Sparkles,
@@ -11,12 +10,10 @@ import {
   Paperclip,
   Image as ImageIcon,
   Bot,
-  User,
   ThumbsUp,
   ThumbsDown,
   Play,
   ChevronDown,
-  MoreHorizontal,
   Trash2,
   Plus,
   Globe,
@@ -59,17 +56,45 @@ const SUGGESTION_PROMPTS = [
   { text: "Add authentication with email login", icon: <Sparkles className="size-3.5" /> },
   { text: "Design a landing page with animations", icon: <Wand2 className="size-3.5" /> },
   { text: "Generate a REST API with CRUD endpoints", icon: <Play className="size-3.5" /> },
-  { text: "Create a Stripe payment checkout flow", icon: <Globe className="size-3.5" /> },
+  { text: "Set up Supabase with auth and database", icon: <Globe className="size-3.5" /> },
 ]
 
-const SAMPLE_RESPONSES: Record<string, { content: string; code: string; language: string; filename: string }> = {
-  default: {
-    content: "I'll generate that for you. Here's a clean implementation with TypeScript and Tailwind CSS:",
-    code: `import { useState } from "react"\nimport { Button } from "@/components/ui/button"\n\nexport function TodoApp() {\n  const [todos, setTodos] = useState<string[]>([])\n  const [input, setInput] = useState("")\n\n  const addTodo = () => {\n    if (input.trim()) {\n      setTodos(prev => [...prev, input.trim()])\n      setInput("")\n    }\n  }\n\n  return (\n    <div className="max-w-md mx-auto p-6">\n      <h1 className="text-2xl font-bold mb-4">Todo App</h1>\n      <div className="flex gap-2 mb-4">\n        <input\n          value={input}\n          onChange={e => setInput(e.target.value)}\n          placeholder="Add a task..."\n          className="flex-1 px-3 py-2 border rounded-lg"\n        />\n        <Button onClick={addTodo}>Add</Button>\n      </div>\n      <ul className="space-y-2">\n        {todos.map((todo, i) => (\n          <li key={i} className="p-3 bg-card rounded-lg border">\n            {todo}\n          </li>\n        ))}\n      </ul>\n    </div>\n  )\n}`,
-    language: "tsx",
-    filename: "todo-app.tsx",
-  },
-}
+const SAMPLE_CODE = `import { useState } from "react"
+import { Button } from "@/components/ui/button"
+
+export function TodoApp() {
+  const [todos, setTodos] = useState<string[]>([])
+  const [input, setInput] = useState("")
+
+  const addTodo = () => {
+    if (input.trim()) {
+      setTodos(prev => [...prev, input.trim()])
+      setInput("")
+    }
+  }
+
+  return (
+    <div className="max-w-md mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Todo App</h1>
+      <div className="flex gap-2 mb-4">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Add a task..."
+          className="flex-1 px-3 py-2 border rounded-lg"
+        />
+        <Button onClick={addTodo}>Add</Button>
+      </div>
+      <ul className="space-y-2">
+        {todos.map((todo, i) => (
+          <li key={i} className="p-3 bg-card rounded-lg border">
+            {todo}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}`
 
 export function ChatPanel() {
   const [threads, setThreads] = useState<ChatThread[]>([])
@@ -77,15 +102,16 @@ export function ChatPanel() {
   const [input, setInput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [selectedModel, setSelectedModel] = useState<AIModel>(AI_MODELS[3]) // Gemini 2.0 Flash
-  const [selectedAgent, setSelectedAgent] = useState<AIAgent>(AI_AGENTS[0]) // Forge Coder
+  const [selectedModel, setSelectedModel] = useState<AIModel>(AI_MODELS[3])
+  const [selectedAgent, setSelectedAgent] = useState<AIAgent>(AI_AGENTS[0])
   const [showThreads, setShowThreads] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const activeThread = threads.find((t) => t.id === activeThreadId)
   const messages = activeThread?.messages ?? []
 
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto"
@@ -93,10 +119,9 @@ export function ChatPanel() {
     }
   }, [input])
 
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   const createThread = useCallback((firstMessage: string) => {
@@ -137,7 +162,6 @@ export function ChatPanel() {
     )
     setIsGenerating(true)
 
-    // Add thinking indicator
     const thinkingId = crypto.randomUUID()
     setTimeout(() => {
       setThreads((prev) =>
@@ -163,31 +187,26 @@ export function ChatPanel() {
       )
     }, 200)
 
-    // Simulate AI response
     setTimeout(() => {
-      const resp = SAMPLE_RESPONSES.default
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: resp.content,
+        content: "I'll generate that for you. Here's a clean implementation with TypeScript and Tailwind CSS:",
         timestamp: new Date(),
         agent: selectedAgent,
         model: selectedModel,
         codeBlocks: [
           {
-            language: resp.language,
-            code: resp.code,
-            filename: resp.filename,
+            language: "tsx",
+            code: SAMPLE_CODE,
+            filename: "todo-app.tsx",
           },
         ],
       }
       setThreads((prev) =>
         prev.map((t) =>
           t.id === threadId
-            ? {
-                ...t,
-                messages: [...t.messages.filter((m) => !m.thinking), assistantMessage],
-              }
+            ? { ...t, messages: [...t.messages.filter((m) => !m.thinking), assistantMessage] }
             : t
         )
       )
@@ -226,13 +245,13 @@ export function ChatPanel() {
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={() => setShowThreads(!showThreads)}
-            className="flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-accent transition-colors"
+            className="flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-accent transition-colors min-w-0"
           >
             <Sparkles className="size-4 text-primary shrink-0" />
-            <span className="text-xs font-semibold text-foreground truncate max-w-[80px]">
+            <span className="text-xs font-semibold text-foreground truncate max-w-[100px]">
               {activeThread ? activeThread.title : "New Chat"}
             </span>
-            <ChevronDown className={cn("size-3 text-muted-foreground transition-transform", showThreads && "rotate-180")} />
+            <ChevronDown className={cn("size-3 text-muted-foreground transition-transform shrink-0", showThreads && "rotate-180")} />
           </button>
         </div>
         <div className="flex items-center gap-1">
@@ -248,7 +267,7 @@ export function ChatPanel() {
 
       {/* Thread list overlay */}
       {showThreads && (
-        <div className="border-b border-border bg-card">
+        <div className="border-b border-border bg-card shrink-0">
           <div className="p-2 max-h-[200px] overflow-y-auto">
             {threads.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-3">No conversations yet</p>
@@ -265,7 +284,7 @@ export function ChatPanel() {
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div
-                        className="w-5 h-5 rounded-sm flex items-center justify-center text-[8px] font-bold shrink-0"
+                        className="w-5 h-5 rounded-sm flex items-center justify-center shrink-0"
                         style={{ backgroundColor: t.agent.color + "25", color: t.agent.color }}
                       >
                         <Bot className="size-3" />
@@ -273,7 +292,7 @@ export function ChatPanel() {
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">{t.title}</p>
                         <p className="text-[9px] text-muted-foreground">
-                          {t.messages.length} messages &middot; {t.agent.name}
+                          {t.messages.length} messages
                         </p>
                       </div>
                     </div>
@@ -305,28 +324,19 @@ export function ChatPanel() {
             Choose an AI agent and model, then describe your project.
           </p>
 
-          {/* Agent/Model quick info */}
           <div className="flex items-center gap-2 mb-5 flex-wrap justify-center">
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary/40 border border-border/50">
-              <div
-                className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-bold"
-                style={{ backgroundColor: selectedAgent.color + "25", color: selectedAgent.color }}
-              >
+              <div className="w-4 h-4 rounded-sm flex items-center justify-center" style={{ backgroundColor: selectedAgent.color + "25", color: selectedAgent.color }}>
                 <Bot className="size-2.5" />
               </div>
               <span className="text-[11px] text-foreground font-medium">{selectedAgent.name}</span>
             </div>
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary/40 border border-border/50">
-              <div
-                className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-bold"
-                style={{ backgroundColor: selectedModel.color + "25", color: selectedModel.color }}
-              >
+              <div className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-bold" style={{ backgroundColor: selectedModel.color + "25", color: selectedModel.color }}>
                 {selectedModel.icon}
               </div>
               <span className="text-[11px] text-foreground font-medium">{selectedModel.name}</span>
-              {selectedModel.free && (
-                <span className="text-[8px] font-bold text-primary">FREE</span>
-              )}
+              {selectedModel.free && <span className="text-[8px] font-bold text-primary">FREE</span>}
             </div>
           </div>
 
@@ -346,8 +356,8 @@ export function ChatPanel() {
           </div>
         </div>
       ) : (
-        <ScrollArea className="flex-1">
-          <div ref={scrollRef} className="flex flex-col gap-0.5 p-3">
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col gap-0.5 p-3">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -359,7 +369,7 @@ export function ChatPanel() {
                 {message.thinking ? (
                   <div className="flex items-start gap-2.5 max-w-[95%]">
                     <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold shrink-0"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                       style={{ backgroundColor: (message.agent?.color ?? "#64748b") + "18", color: message.agent?.color ?? "#64748b" }}
                     >
                       <Bot className="size-3.5" />
@@ -376,10 +386,7 @@ export function ChatPanel() {
                           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
                         </div>
                         {message.model && (
-                          <span
-                            className="text-[8px] px-1 py-0.5 rounded font-medium"
-                            style={{ backgroundColor: message.model.color + "15", color: message.model.color }}
-                          >
+                          <span className="text-[8px] px-1 py-0.5 rounded font-medium" style={{ backgroundColor: message.model.color + "15", color: message.model.color }}>
                             {message.model.name}
                           </span>
                         )}
@@ -396,11 +403,10 @@ export function ChatPanel() {
                     </span>
                   </div>
                 ) : (
-                  <div className="max-w-[95%] flex flex-col gap-2.5">
-                    {/* Agent header */}
+                  <div className="max-w-[95%] flex flex-col gap-2.5 w-full">
                     <div className="flex items-center gap-2">
                       <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold shrink-0"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                         style={{ backgroundColor: (message.agent?.color ?? "#64748b") + "18", color: message.agent?.color ?? "#64748b" }}
                       >
                         <Bot className="size-3.5" />
@@ -408,10 +414,7 @@ export function ChatPanel() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[11px] font-semibold text-foreground">{message.agent?.name ?? "AI"}</span>
                         {message.model && (
-                          <span
-                            className="text-[8px] px-1.5 py-0.5 rounded-md font-medium"
-                            style={{ backgroundColor: message.model.color + "12", color: message.model.color }}
-                          >
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-md font-medium" style={{ backgroundColor: message.model.color + "12", color: message.model.color }}>
                             {message.model.name}
                           </span>
                         )}
@@ -421,11 +424,9 @@ export function ChatPanel() {
                       </div>
                     </div>
 
-                    {/* Content */}
                     <div className="pl-9">
                       <p className="text-sm text-foreground leading-relaxed">{message.content}</p>
 
-                      {/* Code blocks */}
                       {message.codeBlocks?.map((block, i) => {
                         const blockId = `${message.id}-${i}`
                         return (
@@ -435,34 +436,30 @@ export function ChatPanel() {
                                 <span className="text-[10px] font-mono text-muted-foreground">{block.filename ?? block.language}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <button
-                                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
-                                >
+                                <button className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors">
                                   <Play className="size-3" />
                                   Apply
                                 </button>
                                 <button
                                   onClick={() => handleCopy(block.code, blockId)}
                                   className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                  aria-label="Copy code"
                                 >
-                                  {copiedId === blockId ? (
-                                    <Check className="size-3 text-primary" />
-                                  ) : (
-                                    <Copy className="size-3" />
-                                  )}
+                                  {copiedId === blockId ? <Check className="size-3 text-primary" /> : <Copy className="size-3" />}
                                 </button>
                               </div>
                             </div>
-                            <pre className="p-3 bg-editor-bg overflow-x-auto">
-                              <code className="text-[12px] font-mono text-foreground/90 leading-5">
-                                {block.code}
-                              </code>
-                            </pre>
+                            <div className="overflow-x-auto">
+                              <pre className="p-3 bg-editor-bg">
+                                <code className="text-[12px] font-mono text-foreground/90 leading-5">
+                                  {block.code}
+                                </code>
+                              </pre>
+                            </div>
                           </div>
                         )
                       })}
 
-                      {/* Feedback */}
                       <div className="flex items-center gap-1 mt-2.5">
                         <button className="p-1 rounded hover:bg-accent text-muted-foreground/50 hover:text-foreground transition-colors" aria-label="Thumbs up">
                           <ThumbsUp className="size-3" />
@@ -479,19 +476,18 @@ export function ChatPanel() {
                 )}
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {/* Input area */}
       <div className="border-t border-border p-2.5 shrink-0">
-        {/* Agent / Model selectors */}
         <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-0.5">
           <AgentSelector selectedAgent={selectedAgent} onSelectAgent={setSelectedAgent} />
           <ModelSelector selectedModel={selectedModel} onSelectModel={setSelectedModel} compact />
         </div>
 
-        {/* Input box */}
         <div className="flex items-end gap-2 bg-secondary/30 rounded-xl border border-border px-3 py-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
           <div className="flex items-center gap-0.5 pb-0.5">
             <button className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" aria-label="Attach file">

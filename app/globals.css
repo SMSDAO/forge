@@ -116,47 +116,99 @@
   }
 }
 
-/* Safe area for mobile bottom navigation */
+/* Safe area for mobile */
 .safe-area-inset-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Custom scrollbar styling */
+/* Scrollbar - thin on all platforms */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.28 0 0) transparent;
+}
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.3 0 0);
+  background: oklch(0.28 0 0);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.4 0 0);
+  background: oklch(0.38 0 0);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
-/* Selection color */
+/* Selection */
 ::selection {
   background: oklch(0.25 0.04 250);
   color: oklch(0.95 0 0);
 }
 
-/* Textarea focus */
-textarea:focus {
+/* Focus handling */
+textarea:focus, input:focus {
   outline: none;
 }
 
-/* Smooth transitions */
+/* Resizable handles */
 [data-slot="resizable-handle"] {
   transition: background-color 0.15s ease;
 }
 [data-slot="resizable-handle"]:hover {
-  background-color: oklch(0.65 0.2 145 / 0.4);
+  background-color: oklch(0.65 0.2 145 / 0.4) !important;
+}
+[data-slot="resizable-handle"][data-resize-handle-state="drag"] {
+  background-color: oklch(0.65 0.2 145 / 0.6) !important;
 }
 
-/* Code font consistency */
+/* Code fonts */
 pre, code, .font-mono {
   font-family: var(--font-mono), 'Geist Mono', monospace;
+}
+
+/* Touch improvements for mobile */
+@media (max-width: 767px) {
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Faster scroll on mobile */
+  .overflow-y-auto, .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Smooth all panels */
+[data-slot="scroll-area-viewport"] {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar on mobile tab row */
+.overflow-x-auto {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+/* Details/summary cursor */
+summary {
+  cursor: pointer;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Animate panel transitions */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: slideIn 0.2s ease-out;
 }

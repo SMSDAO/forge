@@ -19,18 +19,22 @@ import { cn } from "@/lib/utils"
 import {
   Search,
   GitBranch,
-  Bug,
+  Terminal,
   Blocks,
-  Settings,
-  FolderTree,
   Database,
   Shield,
   Globe,
-  Terminal,
   Sparkles,
+  X,
+  Check,
+  FolderTree,
+  Settings,
+  MoreHorizontal,
+  Filter,
+  Bug,
 } from "lucide-react"
 
-type SidebarView = "chat" | "files" | "search" | "git" | "debug" | "extensions"
+type SidebarView = "chat" | "files" | "search" | "git" | "debug" | "extensions" | "database"
 
 export function IdeLayout() {
   const [activeFile, setActiveFile] = useState("page.tsx")
@@ -40,7 +44,6 @@ export function IdeLayout() {
   const [showCopilot, setShowCopilot] = useState(false)
   const [showBuilder, setShowBuilder] = useState(false)
 
-  // Global keyboard shortcut for Copilot
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -69,7 +72,6 @@ export function IdeLayout() {
   }, [])
 
   const handleCopilotSubmit = useCallback((prompt: string) => {
-    // Switch to chat and trigger a message
     setSidebarView("chat")
     setShowSidebar(true)
     setMobileTab("chat")
@@ -77,13 +79,33 @@ export function IdeLayout() {
 
   const handleBuild = useCallback(
     (config: { template: string; database: string | null; features: string[]; style: string }) => {
-      // Simulate build: switch to chat to show progress
       setSidebarView("chat")
       setShowSidebar(true)
       setMobileTab("chat")
     },
     []
   )
+
+  const renderSidebarContent = () => {
+    switch (sidebarView) {
+      case "chat":
+        return <ChatPanel />
+      case "files":
+        return <FileExplorer activeFile={activeFile} onSelectFile={setActiveFile} />
+      case "search":
+        return <SearchPanel />
+      case "git":
+        return <GitPanel />
+      case "debug":
+        return <DebugPanel />
+      case "extensions":
+        return <ExtensionsPanel />
+      case "database":
+        return <DatabasePanel />
+      default:
+        return <ChatPanel />
+    }
+  }
 
   return (
     <div className="flex flex-col h-dvh w-full overflow-hidden bg-background">
@@ -101,39 +123,23 @@ export function IdeLayout() {
         />
 
         <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* Sidebar panel */}
           {showSidebar && (
             <>
               <ResizablePanel defaultSize={22} minSize={15} maxSize={40}>
-                <div className="h-full overflow-hidden">
-                  {sidebarView === "chat" && <ChatPanel />}
-                  {sidebarView === "files" && (
-                    <FileExplorer
-                      activeFile={activeFile}
-                      onSelectFile={setActiveFile}
-                    />
-                  )}
-                  {sidebarView === "search" && <SearchPanel />}
-                  {sidebarView === "git" && <GitPanel />}
-                  {sidebarView === "debug" && <DebugPanel />}
-                  {sidebarView === "extensions" && <ExtensionsPanel />}
+                <div className="h-full overflow-hidden flex flex-col">
+                  {renderSidebarContent()}
                 </div>
               </ResizablePanel>
-              <ResizableHandle />
+              <ResizableHandle className="w-px bg-border hover:bg-primary/40 transition-colors data-[resize-handle-state=drag]:bg-primary/60" />
             </>
           )}
 
-          {/* Code editor */}
-          <ResizablePanel
-            defaultSize={showSidebar ? 43 : 55}
-            minSize={25}
-          >
+          <ResizablePanel defaultSize={showSidebar ? 43 : 55} minSize={25}>
             <CodeEditor activeFile={activeFile} onFileChange={setActiveFile} />
           </ResizablePanel>
 
-          <ResizableHandle />
+          <ResizableHandle className="w-px bg-border hover:bg-primary/40 transition-colors data-[resize-handle-state=drag]:bg-primary/60" />
 
-          {/* Preview */}
           <ResizablePanel defaultSize={35} minSize={20}>
             <PreviewPanel />
           </ResizablePanel>
@@ -142,10 +148,10 @@ export function IdeLayout() {
 
       {/* Mobile layout */}
       <div className="flex md:hidden flex-1 overflow-hidden">
-        <div className={cn("w-full h-full", mobileTab !== "chat" && "hidden")}>
+        <div className={cn("w-full h-full flex flex-col", mobileTab !== "chat" && "hidden")}>
           <ChatPanel />
         </div>
-        <div className={cn("w-full h-full", mobileTab !== "files" && "hidden")}>
+        <div className={cn("w-full h-full flex flex-col", mobileTab !== "files" && "hidden")}>
           <FileExplorer
             activeFile={activeFile}
             onSelectFile={(file) => {
@@ -154,21 +160,22 @@ export function IdeLayout() {
             }}
           />
         </div>
-        <div
-          className={cn("w-full h-full", mobileTab !== "editor" && "hidden")}
-        >
+        <div className={cn("w-full h-full flex flex-col", mobileTab !== "editor" && "hidden")}>
           <CodeEditor activeFile={activeFile} onFileChange={setActiveFile} />
         </div>
-        <div
-          className={cn("w-full h-full", mobileTab !== "preview" && "hidden")}
-        >
+        <div className={cn("w-full h-full flex flex-col", mobileTab !== "preview" && "hidden")}>
           <PreviewPanel />
+        </div>
+        <div className={cn("w-full h-full flex flex-col", mobileTab !== "terminal" && "hidden")}>
+          <CloudTerminalPanel />
+        </div>
+        <div className={cn("w-full h-full flex flex-col", mobileTab !== "database" && "hidden")}>
+          <DatabasePanel />
         </div>
       </div>
 
       <MobileNav activeTab={mobileTab} onTabChange={handleMobileTabChange} />
 
-      {/* Overlays */}
       <CopilotOverlay
         open={showCopilot}
         onClose={() => setShowCopilot(false)}
@@ -183,26 +190,45 @@ export function IdeLayout() {
   )
 }
 
-/* Sidebar panels */
+/* ===================== Search Panel ===================== */
 function SearchPanel() {
   const [query, setQuery] = useState("")
+  const [replaceQuery, setReplaceQuery] = useState("")
+  const [showReplace, setShowReplace] = useState(false)
+  const [caseSensitive, setCaseSensitive] = useState(false)
+  const [regex, setRegex] = useState(false)
+
   const results = query.trim()
     ? [
-        { file: "page.tsx", line: 5, text: `<CardTitle className="text-2xl font-bold text-center">` },
-        { file: "layout.tsx", line: 8, text: `title: "My App",` },
-        { file: "button.tsx", line: 12, text: `"inline-flex items-center justify-center rounded-md text-sm"` },
+        { file: "app/page.tsx", line: 5, col: 12, text: `<CardTitle className="text-2xl font-bold text-center">`, match: query },
+        { file: "app/layout.tsx", line: 8, col: 4, text: `title: "My App",`, match: query },
+        { file: "components/ui/button.tsx", line: 12, col: 8, text: `"inline-flex items-center justify-center rounded-md text-sm"`, match: query },
+        { file: "lib/utils.ts", line: 3, col: 1, text: `export function cn(...inputs: ClassValue[]) {`, match: query },
       ]
     : []
 
+  const fileGroups = results.reduce<Record<string, typeof results>>((acc, r) => {
+    if (!acc[r.file]) acc[r.file] = []
+    acc[r.file].push(r)
+    return acc
+  }, {})
+
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center px-3 h-10 border-b border-border shrink-0">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Search
-        </span>
+      <div className="flex items-center justify-between px-3 h-10 border-b border-border shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Search</span>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => setShowReplace(!showReplace)}
+            className={cn("p-1 rounded text-muted-foreground hover:text-foreground transition-colors", showReplace && "text-primary")}
+            aria-label="Toggle replace"
+          >
+            <Filter className="size-3" />
+          </button>
+        </div>
       </div>
-      <div className="px-3 py-2.5">
-        <div className="flex items-center gap-2 bg-secondary/50 rounded-lg px-2.5 py-2 border border-border/50 focus-within:border-primary/40 transition-colors">
+      <div className="px-3 pt-2.5 pb-1 flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 bg-secondary/50 rounded-lg px-2.5 py-2 border border-border/50 focus-within:border-primary/40 transition-colors">
           <Search className="size-3.5 text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -211,129 +237,241 @@ function SearchPanel() {
             placeholder="Search across files..."
             className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground w-full"
           />
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={() => setCaseSensitive(!caseSensitive)}
+              className={cn("px-1 py-0.5 rounded text-[9px] font-mono font-bold transition-colors", caseSensitive ? "text-primary bg-primary/10" : "text-muted-foreground/50 hover:text-muted-foreground")}
+            >
+              Aa
+            </button>
+            <button
+              onClick={() => setRegex(!regex)}
+              className={cn("px-1 py-0.5 rounded text-[9px] font-mono font-bold transition-colors", regex ? "text-primary bg-primary/10" : "text-muted-foreground/50 hover:text-muted-foreground")}
+            >
+              .*
+            </button>
+          </div>
         </div>
+        {showReplace && (
+          <div className="flex items-center gap-1.5 bg-secondary/50 rounded-lg px-2.5 py-2 border border-border/50 focus-within:border-primary/40 transition-colors">
+            <input
+              type="text"
+              value={replaceQuery}
+              onChange={(e) => setReplaceQuery(e.target.value)}
+              placeholder="Replace with..."
+              className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground w-full"
+            />
+            <button className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium shrink-0">
+              All
+            </button>
+          </div>
+        )}
       </div>
       {results.length > 0 ? (
-        <div className="flex-1 overflow-y-auto px-2">
-          <p className="text-[10px] text-muted-foreground px-1 mb-1.5">
-            {results.length} results in {new Set(results.map((r) => r.file)).size} files
+        <div className="flex-1 overflow-y-auto px-2 pb-2">
+          <p className="text-[10px] text-muted-foreground px-1 mb-1.5 py-1">
+            {results.length} results in {Object.keys(fileGroups).length} files
           </p>
-          {results.map((r, i) => (
-            <button
-              key={i}
-              className="flex flex-col gap-0.5 w-full px-2.5 py-2 rounded-lg hover:bg-accent/50 transition-colors text-left"
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-foreground">{r.file}</span>
-                <span className="text-[9px] text-muted-foreground">:{r.line}</span>
+          {Object.entries(fileGroups).map(([file, matches]) => (
+            <div key={file} className="mb-1">
+              <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-foreground">
+                <FolderTree className="size-3 text-primary shrink-0" />
+                <span className="truncate">{file}</span>
+                <span className="text-muted-foreground/50 ml-auto shrink-0">{matches.length}</span>
               </div>
-              <span className="text-[11px] text-muted-foreground font-mono truncate">
-                {r.text}
-              </span>
-            </button>
+              {matches.map((r, i) => (
+                <button
+                  key={i}
+                  className="flex items-start gap-2 w-full px-2.5 py-1.5 ml-2 rounded-md hover:bg-accent/50 transition-colors text-left"
+                >
+                  <span className="text-[10px] text-editor-gutter font-mono shrink-0 pt-0.5 min-w-[2.5ch] text-right">{r.line}</span>
+                  <span className="text-[11px] text-muted-foreground font-mono truncate leading-relaxed">{r.text}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
+      ) : query.trim() ? (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p className="text-xs text-muted-foreground text-center">No results found for &quot;{query}&quot;</p>
+        </div>
       ) : (
-        <div className="px-3">
-          <p className="text-xs text-muted-foreground">
-            Type to search across all files in your project.
-          </p>
+        <div className="px-3 pt-1">
+          <p className="text-xs text-muted-foreground">Type to search across all project files.</p>
         </div>
       )}
     </div>
   )
 }
 
+/* ===================== Git Panel ===================== */
 function GitPanel() {
+  const [commitMsg, setCommitMsg] = useState("")
+  const [stagedFiles, setStagedFiles] = useState<string[]>(["route.ts"])
   const changes = [
-    { file: "page.tsx", status: "modified" },
-    { file: "globals.css", status: "modified" },
-    { file: "route.ts", status: "added" },
+    { file: "app/page.tsx", status: "modified" as const, additions: 12, deletions: 3 },
+    { file: "app/globals.css", status: "modified" as const, additions: 8, deletions: 2 },
+    { file: "app/api/chat/route.ts", status: "added" as const, additions: 24, deletions: 0 },
+    { file: "lib/db.ts", status: "added" as const, additions: 18, deletions: 0 },
   ]
+
+  const toggleStage = (file: string) => {
+    setStagedFiles((prev) =>
+      prev.includes(file) ? prev.filter((f) => f !== file) : [...prev, file]
+    )
+  }
 
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex items-center justify-between px-3 h-10 border-b border-border shrink-0">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Source Control
-        </span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">
-          {changes.length}
-        </span>
-      </div>
-      <div className="px-2 py-2">
-        <div className="flex items-center gap-2 bg-secondary/50 rounded-lg px-2.5 py-2 border border-border/50 mb-2">
-          <input
-            type="text"
-            placeholder="Commit message..."
-            className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full"
-          />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source Control</span>
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">{changes.length}</span>
         </div>
-        <button className="w-full px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity mb-3">
-          Commit & Push
-        </button>
       </div>
-      <div className="px-2 flex-1">
-        <p className="text-[10px] text-muted-foreground px-1 mb-1.5 uppercase font-semibold tracking-wider">
-          Changes
+
+      {/* Branch info */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
+        <GitBranch className="size-3.5 text-primary" />
+        <span className="text-xs text-foreground font-medium">main</span>
+        <span className="text-[10px] text-muted-foreground ml-auto">synced</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+      </div>
+
+      {/* Commit box */}
+      <div className="px-3 py-2 border-b border-border/50">
+        <textarea
+          value={commitMsg}
+          onChange={(e) => setCommitMsg(e.target.value)}
+          placeholder="Commit message..."
+          rows={2}
+          className="w-full bg-secondary/50 rounded-lg px-2.5 py-2 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground resize-none outline-none focus:border-primary/40 transition-colors"
+        />
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <button
+            disabled={!commitMsg.trim()}
+            className={cn(
+              "flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+              commitMsg.trim()
+                ? "bg-primary text-primary-foreground hover:opacity-90"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
+            )}
+          >
+            Commit ({stagedFiles.length})
+          </button>
+          <button className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-accent transition-colors">
+            Push
+          </button>
+        </div>
+      </div>
+
+      {/* Changes */}
+      <div className="flex-1 overflow-y-auto px-2 py-1.5">
+        <p className="text-[10px] text-muted-foreground px-1 mb-1 uppercase font-semibold tracking-wider">
+          Changes ({changes.length})
         </p>
         {changes.map((c) => (
-          <div
+          <button
             key={c.file}
-            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-accent/40 transition-colors"
+            onClick={() => toggleStage(c.file)}
+            className={cn(
+              "flex items-center gap-2 w-full px-2.5 py-2 rounded-lg transition-colors text-left group",
+              stagedFiles.includes(c.file) ? "bg-primary/5" : "hover:bg-accent/40"
+            )}
           >
-            <span className="text-xs text-foreground">{c.file}</span>
-            <span
+            <div
               className={cn(
-                "text-[9px] px-1.5 py-0.5 rounded font-medium",
-                c.status === "modified"
-                  ? "bg-amber-500/15 text-amber-400"
-                  : "bg-primary/15 text-primary"
+                "w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                stagedFiles.includes(c.file) ? "bg-primary border-primary" : "border-muted-foreground/30"
               )}
             >
-              {c.status[0].toUpperCase()}
+              {stagedFiles.includes(c.file) && <Check className="size-2 text-primary-foreground" />}
+            </div>
+            <span className="text-xs text-foreground flex-1 truncate">{c.file}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-[9px] text-primary font-mono">+{c.additions}</span>
+              {c.deletions > 0 && <span className="text-[9px] text-destructive font-mono">-{c.deletions}</span>}
+            </div>
+            <span
+              className={cn(
+                "text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0",
+                c.status === "modified" ? "bg-amber-500/15 text-amber-400" : "bg-primary/15 text-primary"
+              )}
+            >
+              {c.status === "modified" ? "M" : "A"}
             </span>
-          </div>
+          </button>
         ))}
       </div>
     </div>
   )
 }
 
+/* ===================== Debug / Console Panel ===================== */
 function DebugPanel() {
+  const [filter, setFilter] = useState<"all" | "info" | "warn" | "error">("all")
   const logs = [
-    { type: "info", text: "App started on port 3000", time: "12:01" },
-    { type: "warn", text: "Missing NEXT_PUBLIC_API_URL env var", time: "12:01" },
-    { type: "info", text: "Compiled successfully in 1.2s", time: "12:02" },
-    { type: "info", text: "GET / 200 in 45ms", time: "12:03" },
+    { type: "info" as const, text: "Forge IDE v3.0 Cloud Engine started", time: "12:01:03" },
+    { type: "info" as const, text: "Next.js 16.1.6 - Turbopack enabled", time: "12:01:03" },
+    { type: "info" as const, text: "Local: http://localhost:3000", time: "12:01:04" },
+    { type: "warn" as const, text: "Missing NEXT_PUBLIC_API_URL environment variable", time: "12:01:04" },
+    { type: "info" as const, text: "Compiled client and server in 1.2s", time: "12:01:05" },
+    { type: "info" as const, text: "GET / 200 in 45ms", time: "12:03:11" },
+    { type: "info" as const, text: "GET /api/health 200 in 12ms", time: "12:03:15" },
+    { type: "info" as const, text: "POST /api/chat 200 in 890ms", time: "12:04:22" },
+    { type: "error" as const, text: "TypeError: Cannot read properties of undefined (reading 'map')", time: "12:05:01" },
+    { type: "info" as const, text: "Hot reload triggered - page.tsx", time: "12:05:04" },
+    { type: "info" as const, text: "Compiled in 0.3s", time: "12:05:04" },
+    { type: "info" as const, text: "GET / 200 in 38ms", time: "12:05:05" },
   ]
+
+  const filtered = filter === "all" ? logs : logs.filter((l) => l.type === filter)
 
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex items-center justify-between px-3 h-10 border-b border-border shrink-0">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Console
-        </span>
-        <div className="flex items-center gap-1">
-          <button className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
-            <Terminal className="size-3" />
-          </button>
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Console</span>
+        <div className="flex items-center gap-0.5">
+          {(["all", "info", "warn", "error"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors",
+                filter === f ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {f === "all" ? "All" : f === "warn" ? "Warn" : f === "error" ? "Err" : "Info"}
+            </button>
+          ))}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 font-mono">
-        {logs.map((log, i) => (
+      <div className="flex-1 overflow-y-auto p-1.5 font-mono">
+        {filtered.map((log, i) => (
           <div
             key={i}
-            className="flex items-start gap-2 px-2 py-1 text-[11px] hover:bg-accent/20 rounded transition-colors"
+            className={cn(
+              "flex items-start gap-2 px-2 py-1 text-[11px] rounded transition-colors hover:bg-accent/20",
+              log.type === "error" && "bg-destructive/5"
+            )}
           >
-            <span className="text-muted-foreground/50 shrink-0">{log.time}</span>
+            <span className="text-muted-foreground/40 shrink-0 min-w-[60px]">{log.time}</span>
             <span
               className={cn(
-                log.type === "warn"
-                  ? "text-amber-400"
-                  : log.type === "error"
-                  ? "text-red-400"
-                  : "text-foreground/80"
+                "text-[9px] font-semibold px-1 py-0.5 rounded shrink-0 min-w-[28px] text-center uppercase",
+                log.type === "warn" ? "text-amber-400 bg-amber-500/10" :
+                log.type === "error" ? "text-red-400 bg-red-500/10" :
+                "text-muted-foreground/60"
+              )}
+            >
+              {log.type === "info" ? "" : log.type}
+            </span>
+            <span
+              className={cn(
+                "break-all leading-relaxed",
+                log.type === "warn" ? "text-amber-400" :
+                log.type === "error" ? "text-red-400" :
+                "text-foreground/80"
               )}
             >
               {log.text}
@@ -341,132 +479,344 @@ function DebugPanel() {
           </div>
         ))}
       </div>
+      {/* Input */}
+      <div className="flex items-center gap-2 px-2 py-1.5 border-t border-border shrink-0">
+        <span className="text-primary/70 text-xs font-mono shrink-0">$</span>
+        <input
+          type="text"
+          placeholder="Run command..."
+          className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
     </div>
   )
 }
 
-function ExtensionsPanel() {
-  const extensions = [
-    {
-      name: "AI Copilot",
-      desc: "Inline code suggestions powered by AI",
-      installed: true,
-      color: "#22c55e",
-    },
-    {
-      name: "Tailwind CSS IntelliSense",
-      desc: "Autocomplete for Tailwind classes",
-      installed: true,
-      color: "#38bdf8",
-    },
-    {
-      name: "ESLint",
-      desc: "JavaScript linter for code quality",
-      installed: true,
-      color: "#4b32c3",
-    },
-    {
-      name: "Prettier",
-      desc: "Opinionated code formatter",
-      installed: true,
-      color: "#f7b93e",
-    },
-    {
-      name: "GitHub Copilot",
-      desc: "AI pair programmer",
-      installed: false,
-      color: "#ffffff",
-    },
-    {
-      name: "Prisma",
-      desc: "Database toolkit and ORM",
-      installed: false,
-      color: "#5a67d8",
-    },
+/* ===================== Database Panel ===================== */
+function DatabasePanel() {
+  const [activeDb, setActiveDb] = useState("supabase")
+  const [activeTab, setActiveTab] = useState<"tables" | "query" | "migrations">("tables")
+  const [sqlQuery, setSqlQuery] = useState("SELECT * FROM users LIMIT 10;")
+
+  const databases = [
+    { id: "supabase", name: "Supabase", color: "#3ecf8e", status: "connected" },
+    { id: "redis", name: "Upstash Redis", color: "#dc382d", status: "connected" },
+  ]
+
+  const tables = [
+    { name: "users", rows: 1247, columns: ["id", "email", "name", "avatar_url", "created_at"] },
+    { name: "projects", rows: 89, columns: ["id", "name", "owner_id", "status", "created_at"] },
+    { name: "messages", rows: 5632, columns: ["id", "project_id", "user_id", "content", "role", "created_at"] },
+    { name: "files", rows: 423, columns: ["id", "project_id", "path", "content", "language"] },
+    { name: "deployments", rows: 156, columns: ["id", "project_id", "status", "url", "created_at"] },
+  ]
+
+  const migrations = [
+    { id: "001", name: "create_users_table", status: "applied", date: "2026-02-15" },
+    { id: "002", name: "create_projects_table", status: "applied", date: "2026-02-16" },
+    { id: "003", name: "add_messages_table", status: "applied", date: "2026-02-20" },
+    { id: "004", name: "add_files_and_deployments", status: "pending", date: "2026-03-04" },
   ]
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center px-3 h-10 border-b border-border shrink-0">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Extensions
-        </span>
+      <div className="flex items-center justify-between px-3 h-10 border-b border-border shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Database</span>
+        <button className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" aria-label="Database settings">
+          <Settings className="size-3" />
+        </button>
       </div>
-      <div className="px-2 py-2">
-        <div className="flex items-center gap-1.5 bg-secondary/50 rounded-lg px-2.5 py-2 border border-border/50 mb-2">
-          <Search className="size-3 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search extensions..."
-            className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full"
-          />
+
+      {/* DB selector */}
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/50 overflow-x-auto">
+        {databases.map((db) => (
+          <button
+            key={db.id}
+            onClick={() => setActiveDb(db.id)}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors shrink-0",
+              activeDb === db.id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: db.color }} />
+            {db.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-0.5 px-2 py-1 border-b border-border/50 shrink-0">
+        {(["tables", "query", "migrations"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition-colors",
+              activeTab === tab ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === "tables" && (
+          <div className="p-2">
+            {tables.map((table) => (
+              <details key={table.name} className="group mb-1">
+                <summary className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-accent/40 cursor-pointer transition-colors list-none">
+                  <Database className="size-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground flex-1">{table.name}</span>
+                  <span className="text-[9px] text-muted-foreground">{table.rows} rows</span>
+                </summary>
+                <div className="ml-4 pl-4 border-l border-border/50 py-1">
+                  {table.columns.map((col) => (
+                    <div key={col} className="flex items-center gap-2 px-2 py-0.5 text-[11px]">
+                      <span className="w-1 h-1 rounded-full bg-muted-foreground/30 shrink-0" />
+                      <span className="text-muted-foreground font-mono">{col}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
+
+        {activeTab === "query" && (
+          <div className="p-2 flex flex-col gap-2">
+            <textarea
+              value={sqlQuery}
+              onChange={(e) => setSqlQuery(e.target.value)}
+              rows={4}
+              className="w-full bg-editor-bg rounded-lg px-3 py-2 border border-border/50 text-xs font-mono text-foreground placeholder:text-muted-foreground resize-none outline-none focus:border-primary/40 transition-colors"
+              placeholder="SELECT * FROM ..."
+            />
+            <button className="self-end px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity flex items-center gap-1.5">
+              <Terminal className="size-3" />
+              Run Query
+            </button>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="bg-secondary/30 px-3 py-1.5 border-b border-border text-[10px] text-muted-foreground font-medium">
+                Results (3 rows, 12ms)
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">id</th>
+                      <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">email</th>
+                      <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">name</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    <tr className="border-b border-border/30 hover:bg-accent/20">
+                      <td className="px-3 py-1.5 text-syntax-number">1</td>
+                      <td className="px-3 py-1.5 text-syntax-string">alice@example.com</td>
+                      <td className="px-3 py-1.5 text-foreground">Alice</td>
+                    </tr>
+                    <tr className="border-b border-border/30 hover:bg-accent/20">
+                      <td className="px-3 py-1.5 text-syntax-number">2</td>
+                      <td className="px-3 py-1.5 text-syntax-string">bob@example.com</td>
+                      <td className="px-3 py-1.5 text-foreground">Bob</td>
+                    </tr>
+                    <tr className="hover:bg-accent/20">
+                      <td className="px-3 py-1.5 text-syntax-number">3</td>
+                      <td className="px-3 py-1.5 text-syntax-string">carol@example.com</td>
+                      <td className="px-3 py-1.5 text-foreground">Carol</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "migrations" && (
+          <div className="p-2">
+            {migrations.map((m) => (
+              <div key={m.id} className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-accent/40 transition-colors">
+                <div className={cn(
+                  "w-5 h-5 rounded flex items-center justify-center shrink-0",
+                  m.status === "applied" ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-400"
+                )}>
+                  {m.status === "applied" ? <Check className="size-3" /> : <span className="text-[9px] font-bold">!</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{m.name}</p>
+                  <p className="text-[9px] text-muted-foreground">{m.date}</p>
+                </div>
+                <span className={cn(
+                  "text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0",
+                  m.status === "applied" ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-400"
+                )}>
+                  {m.status}
+                </span>
+              </div>
+            ))}
+            <button className="w-full mt-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
+              + Create Migration
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ===================== Cloud Terminal Panel ===================== */
+export function CloudTerminalPanel() {
+  const [input, setInput] = useState("")
+  const [history, setHistory] = useState([
+    { type: "system" as const, text: "Forge Cloud Terminal v3.0" },
+    { type: "system" as const, text: "Connected to cloud workspace: us-east-1" },
+    { type: "system" as const, text: "Node.js 20.11 | pnpm 9.1 | Git 2.43" },
+    { type: "system" as const, text: "---" },
+    { type: "cmd" as const, text: "pnpm dev" },
+    { type: "output" as const, text: "  Next.js 16.1.6 (turbopack)" },
+    { type: "output" as const, text: "  - Local:   http://localhost:3000" },
+    { type: "output" as const, text: "  - Network: http://10.0.0.42:3000" },
+    { type: "success" as const, text: "  Ready in 847ms" },
+    { type: "cmd" as const, text: "pnpm add @supabase/supabase-js" },
+    { type: "output" as const, text: "  Packages: +1" },
+    { type: "success" as const, text: "  Done in 2.1s" },
+  ])
+
+  const handleCommand = () => {
+    if (!input.trim()) return
+    const cmd = input.trim()
+    setHistory((prev) => [
+      ...prev,
+      { type: "cmd" as const, text: cmd },
+      { type: "output" as const, text: `Executing: ${cmd}...` },
+      { type: "success" as const, text: "Done." },
+    ])
+    setInput("")
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-background">
+      <div className="flex items-center justify-between px-3 h-10 border-b border-border shrink-0">
+        <div className="flex items-center gap-2">
+          <Terminal className="size-3.5 text-primary" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Terminal</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="flex items-center gap-1 text-[9px] text-primary/70">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            Cloud
+          </span>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-2">
-        <p className="text-[10px] text-muted-foreground px-1 mb-1 uppercase font-semibold tracking-wider">
-          Installed
-        </p>
-        {extensions
-          .filter((e) => e.installed)
-          .map((ext) => (
-            <div
-              key={ext.name}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-accent/40 transition-colors"
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
-                style={{
-                  backgroundColor: ext.color + "18",
-                  color: ext.color,
-                }}
-              >
-                {ext.name[0]}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-foreground truncate">
-                  {ext.name}
-                </p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {ext.desc}
-                </p>
-              </div>
-              <span className="text-[8px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium shrink-0">
-                ON
+      <div className="flex-1 overflow-y-auto p-2 font-mono text-xs">
+        {history.map((entry, i) => (
+          <div key={i} className={cn("py-0.5 leading-relaxed", entry.type === "cmd" && "mt-1")}>
+            {entry.type === "cmd" ? (
+              <span>
+                <span className="text-primary">$</span>{" "}
+                <span className="text-foreground">{entry.text}</span>
               </span>
+            ) : entry.type === "success" ? (
+              <span className="text-primary/80">{entry.text}</span>
+            ) : entry.type === "system" ? (
+              <span className="text-muted-foreground/60">{entry.text}</span>
+            ) : (
+              <span className="text-muted-foreground">{entry.text}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-border shrink-0">
+        <span className="text-primary text-xs font-mono shrink-0">$</span>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleCommand()}
+          placeholder="Enter command..."
+          className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+    </div>
+  )
+}
+
+/* ===================== Extensions Panel ===================== */
+function ExtensionsPanel() {
+  const [installStates, setInstallStates] = useState<Record<string, "idle" | "installing" | "installed">>({})
+  const extensions = [
+    { name: "AI Copilot", desc: "Inline code suggestions powered by AI", installed: true, color: "#22c55e", version: "3.2.1" },
+    { name: "Tailwind IntelliSense", desc: "Autocomplete for Tailwind classes", installed: true, color: "#38bdf8", version: "4.0.0" },
+    { name: "ESLint", desc: "JavaScript linter for code quality", installed: true, color: "#4b32c3", version: "9.5.0" },
+    { name: "Prettier", desc: "Opinionated code formatter", installed: true, color: "#f7b93e", version: "3.4.0" },
+    { name: "GitHub Copilot", desc: "AI pair programmer from GitHub", installed: false, color: "#e8e8e8", version: "1.8" },
+    { name: "Prisma ORM", desc: "Database toolkit and type-safe ORM", installed: false, color: "#5a67d8", version: "6.2" },
+    { name: "Docker", desc: "Container management and debugging", installed: false, color: "#2496ed", version: "2.1" },
+  ]
+
+  const handleInstall = (name: string) => {
+    setInstallStates((prev) => ({ ...prev, [name]: "installing" }))
+    setTimeout(() => {
+      setInstallStates((prev) => ({ ...prev, [name]: "installed" }))
+    }, 1500)
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-background">
+      <div className="flex items-center px-3 h-10 border-b border-border shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Extensions</span>
+      </div>
+      <div className="px-2 py-2 border-b border-border/50">
+        <div className="flex items-center gap-1.5 bg-secondary/50 rounded-lg px-2.5 py-2 border border-border/50 focus-within:border-primary/40 transition-colors">
+          <Search className="size-3 text-muted-foreground" />
+          <input type="text" placeholder="Search extensions..." className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full" />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 pb-2">
+        <p className="text-[10px] text-muted-foreground px-1 mb-1 mt-2 uppercase font-semibold tracking-wider">Installed</p>
+        {extensions.filter((e) => e.installed).map((ext) => (
+          <div key={ext.name} className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-accent/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ backgroundColor: ext.color + "18", color: ext.color }}>
+              {ext.name[0]}
             </div>
-          ))}
-        <p className="text-[10px] text-muted-foreground px-1 mb-1 mt-3 uppercase font-semibold tracking-wider">
-          Recommended
-        </p>
-        {extensions
-          .filter((e) => !e.installed)
-          .map((ext) => (
-            <div
-              key={ext.name}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-accent/40 transition-colors"
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
-                style={{
-                  backgroundColor: ext.color + "18",
-                  color: ext.color,
-                }}
-              >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-medium text-foreground truncate">{ext.name}</p>
+                <span className="text-[9px] text-muted-foreground">v{ext.version}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground truncate">{ext.desc}</p>
+            </div>
+            <span className="text-[8px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium shrink-0">ON</span>
+          </div>
+        ))}
+        <p className="text-[10px] text-muted-foreground px-1 mb-1 mt-3 uppercase font-semibold tracking-wider">Recommended</p>
+        {extensions.filter((e) => !e.installed).map((ext) => {
+          const state = installStates[ext.name] ?? "idle"
+          return (
+            <div key={ext.name} className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-accent/40 transition-colors">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ backgroundColor: ext.color + "18", color: ext.color }}>
                 {ext.name[0]}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-foreground truncate">
-                  {ext.name}
-                </p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {ext.desc}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-medium text-foreground truncate">{ext.name}</p>
+                  <span className="text-[9px] text-muted-foreground">v{ext.version}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate">{ext.desc}</p>
               </div>
-              <button className="text-[9px] px-2 py-1 rounded-md border border-border text-foreground hover:bg-accent transition-colors shrink-0">
-                Install
-              </button>
+              {state === "installed" ? (
+                <span className="text-[8px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium shrink-0">ON</span>
+              ) : state === "installing" ? (
+                <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+              ) : (
+                <button onClick={() => handleInstall(ext.name)} className="text-[9px] px-2 py-1 rounded-md border border-border text-foreground hover:bg-accent transition-colors shrink-0">
+                  Install
+                </button>
+              )}
             </div>
-          ))}
+          )
+        })}
       </div>
     </div>
   )

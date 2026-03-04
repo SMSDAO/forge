@@ -9,10 +9,11 @@ import {
   Tablet,
   Monitor,
   Maximize2,
-  X,
   ArrowLeft,
   ArrowRight,
   Lock,
+  Wifi,
+  Minimize2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -28,6 +29,7 @@ export function PreviewPanel() {
   const [viewport, setViewport] = useState<ViewportSize>("desktop")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [url, setUrl] = useState("localhost:3000")
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const handleRefresh = () => {
     setIsRefreshing(true)
@@ -35,11 +37,14 @@ export function PreviewPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className={cn(
+      "flex flex-col h-full bg-background",
+      isFullscreen && "fixed inset-0 z-[90]"
+    )}>
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-2 h-12 border-b border-border bg-panel-header shrink-0">
+      <div className="flex items-center gap-1.5 px-2 h-11 border-b border-border bg-panel-header shrink-0">
         {/* Navigation */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 shrink-0">
           <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="Go back">
             <ArrowLeft className="size-3.5" />
           </button>
@@ -56,19 +61,20 @@ export function PreviewPanel() {
         </div>
 
         {/* URL bar */}
-        <div className="flex-1 flex items-center gap-1.5 bg-secondary/60 rounded-lg px-2.5 py-1.5 border border-border/50 min-w-0">
+        <div className="flex-1 flex items-center gap-1.5 bg-secondary/60 rounded-lg px-2.5 py-1.5 border border-border/50 min-w-0 focus-within:border-primary/40 transition-colors">
           <Lock className="size-3 text-primary shrink-0" />
           <input
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="bg-transparent border-none outline-none text-xs text-foreground font-mono w-full"
+            className="bg-transparent border-none outline-none text-xs text-foreground font-mono w-full min-w-0"
+            aria-label="URL"
           />
-          <Globe className="size-3 text-muted-foreground shrink-0" />
+          <Wifi className="size-3 text-primary/60 shrink-0" />
         </div>
 
-        {/* Viewport toggle */}
-        <div className="hidden md:flex items-center gap-0.5 bg-secondary/40 rounded-lg p-0.5">
+        {/* Viewport toggle - hidden on small screens */}
+        <div className="hidden lg:flex items-center gap-0.5 bg-secondary/40 rounded-lg p-0.5 shrink-0">
           {(Object.keys(VIEWPORTS) as ViewportSize[]).map((key) => (
             <button
               key={key}
@@ -80,6 +86,7 @@ export function PreviewPanel() {
                   : "text-muted-foreground hover:text-foreground"
               )}
               aria-label={`Switch to ${VIEWPORTS[key].label} view`}
+              title={VIEWPORTS[key].label}
             >
               {VIEWPORTS[key].icon}
             </button>
@@ -87,22 +94,32 @@ export function PreviewPanel() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-0.5">
-          <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="Open in new tab">
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            aria-label="Open in new tab"
+            title="Open in new tab"
+          >
             <ExternalLink className="size-3.5" />
           </button>
-          <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="Fullscreen">
-            <Maximize2 className="size-3.5" />
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
           </button>
         </div>
       </div>
 
-      {/* Preview iframe area */}
-      <div className="flex-1 flex items-start justify-center bg-secondary/20 p-0 md:p-4 overflow-auto">
+      {/* Preview content */}
+      <div className="flex-1 flex items-start justify-center bg-secondary/20 overflow-auto">
         <div
           className={cn(
-            "h-full bg-background border border-border rounded-none md:rounded-lg overflow-hidden transition-all duration-300 shadow-2xl",
-            viewport === "desktop" && "w-full md:w-full",
+            "h-full bg-background overflow-hidden transition-all duration-300",
+            viewport === "desktop" ? "w-full" : "border-x border-border shadow-2xl",
+            viewport !== "desktop" && "mx-auto mt-0 md:mt-4 md:rounded-t-lg"
           )}
           style={{
             width: viewport === "desktop" ? "100%" : VIEWPORTS[viewport].width,
@@ -110,32 +127,32 @@ export function PreviewPanel() {
           }}
         >
           {/* Simulated preview content */}
-          <div className="w-full h-full flex flex-col">
-            {/* Simulated app header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+          <div className="w-full h-full flex flex-col overflow-y-auto">
+            {/* App header */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/50 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <span className="text-primary font-bold text-sm">F</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                  <span className="text-primary font-bold text-xs sm:text-sm">F</span>
                 </div>
-                <span className="text-sm font-semibold text-foreground">Forge App</span>
+                <span className="text-xs sm:text-sm font-semibold text-foreground">Forge App</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-20 rounded-md bg-secondary/60" />
-                <div className="h-8 w-8 rounded-full bg-secondary/60" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="h-7 sm:h-8 w-16 sm:w-20 rounded-md bg-secondary/60" />
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-secondary/60" />
               </div>
             </div>
 
-            {/* Simulated content */}
-            <div className="flex-1 flex flex-col items-center justify-center p-8">
+            {/* App content */}
+            <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
               <div className="w-full max-w-md">
-                <div className="bg-card border border-border rounded-xl p-6 shadow-lg">
-                  <h2 className="text-xl font-bold text-foreground text-center mb-2">
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 shadow-lg">
+                  <h2 className="text-lg sm:text-xl font-bold text-foreground text-center mb-2 text-balance">
                     Welcome to Forge IDE
                   </h2>
-                  <p className="text-sm text-muted-foreground text-center mb-6 text-pretty">
+                  <p className="text-xs sm:text-sm text-muted-foreground text-center mb-4 sm:mb-6 text-pretty">
                     Start building your next project with AI assistance.
                   </p>
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
                       Get Started
                     </button>
@@ -145,20 +162,16 @@ export function PreviewPanel() {
                   </div>
                 </div>
 
-                {/* Additional preview elements */}
-                <div className="grid grid-cols-2 gap-3 mt-6">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-4 sm:mt-6">
                   {[
                     { label: "Components", count: "12" },
                     { label: "API Routes", count: "4" },
                     { label: "Pages", count: "6" },
                     { label: "Utils", count: "8" },
                   ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="bg-card border border-border rounded-lg p-3"
-                    >
-                      <p className="text-lg font-bold text-foreground">{stat.count}</p>
-                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <div key={stat.label} className="bg-card border border-border rounded-lg p-2.5 sm:p-3">
+                      <p className="text-base sm:text-lg font-bold text-foreground">{stat.count}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{stat.label}</p>
                     </div>
                   ))}
                 </div>
@@ -169,16 +182,17 @@ export function PreviewPanel() {
       </div>
 
       {/* Preview status */}
-      <div className="flex items-center justify-between px-3 h-7 bg-primary/10 border-t border-border text-[11px] shrink-0">
+      <div className="flex items-center justify-between px-3 h-7 bg-primary/8 border-t border-border text-[10px] shrink-0">
         <div className="flex items-center gap-2 text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             Live
           </span>
-          <span>localhost:3000</span>
+          <span className="hidden sm:inline font-mono">{url}</span>
         </div>
         <span className="text-muted-foreground">
-          {VIEWPORTS[viewport].label} ({VIEWPORTS[viewport].width === "100%" ? "Full" : VIEWPORTS[viewport].width})
+          {VIEWPORTS[viewport].label}
+          <span className="hidden sm:inline"> ({VIEWPORTS[viewport].width === "100%" ? "Full" : VIEWPORTS[viewport].width})</span>
         </span>
       </div>
     </div>

@@ -7,18 +7,19 @@ import {
   GitBranch,
   Terminal,
   Blocks,
+  Database,
   Settings,
-  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type ActivityItem = "chat" | "files" | "search" | "git" | "debug" | "extensions"
+type ActivityItem = "chat" | "files" | "search" | "git" | "debug" | "extensions" | "database"
 
-const ITEMS: { id: ActivityItem; icon: React.ReactNode; label: string }[] = [
+const TOP_ITEMS: { id: ActivityItem; icon: React.ReactNode; label: string }[] = [
   { id: "chat", icon: <Sparkles className="size-[18px]" />, label: "AI Chat" },
   { id: "files", icon: <FolderTree className="size-[18px]" />, label: "Explorer" },
   { id: "search", icon: <Search className="size-[18px]" />, label: "Search" },
   { id: "git", icon: <GitBranch className="size-[18px]" />, label: "Source Control" },
+  { id: "database", icon: <Database className="size-[18px]" />, label: "Database" },
   { id: "debug", icon: <Terminal className="size-[18px]" />, label: "Console" },
   { id: "extensions", icon: <Blocks className="size-[18px]" />, label: "Extensions" },
 ]
@@ -33,7 +34,7 @@ export function ActivityBar({
   return (
     <div className="hidden md:flex flex-col items-center justify-between w-11 bg-panel-header border-r border-border py-1.5 shrink-0">
       <div className="flex flex-col items-center gap-0.5">
-        {ITEMS.map((item) => (
+        {TOP_ITEMS.map((item) => (
           <button
             key={item.id}
             onClick={() => onItemChange(item.id)}
