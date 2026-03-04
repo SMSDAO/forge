@@ -13,6 +13,10 @@ import {
   Copy,
   Check,
   Terminal,
+  Sparkles,
+  ChevronRight,
+  Bot,
+  Zap,
 } from "lucide-react"
 
 interface OpenTab {
@@ -201,19 +205,30 @@ export function sleep(ms: number): Promise<void> {
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^14.2.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.4.0"
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.5.0"
   }
 }`,
   },
 }
 
+// Ghost text copilot suggestions per file
+const COPILOT_SUGGESTIONS: Record<string, { line: number; suggestion: string }> = {
+  "page.tsx": { line: 18, suggestion: '          <Button variant="secondary">Learn More</Button>' },
+  "route.ts": { line: 20, suggestion: '  const result = await fetch("https://api.openai.com/v1/chat/completions", {' },
+  "utils.ts": { line: 18, suggestion: "export function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {" },
+}
+
 function tokenize(code: string, language: string) {
   const tokens: { text: string; type: string }[] = []
-  const keywords = ["import", "export", "from", "default", "function", "return", "const", "let", "var", "if", "else", "try", "catch", "async", "await", "new", "type", "interface", "extends", "class", "typeof", "instanceof"]
+  const keywords = [
+    "import", "export", "from", "default", "function", "return", "const",
+    "let", "var", "if", "else", "try", "catch", "async", "await", "new",
+    "type", "interface", "extends", "class", "typeof", "instanceof",
+  ]
   const builtins = ["true", "false", "null", "undefined", "void", "string", "number", "boolean", "any"]
 
   const lines = code.split("\n")
@@ -222,12 +237,10 @@ function tokenize(code: string, language: string) {
 
     let i = 0
     while (i < line.length) {
-      // Comments
       if (line.slice(i, i + 2) === "//") {
         tokens.push({ text: line.slice(i), type: "comment" })
         break
       }
-      // Strings
       if (line[i] === '"' || line[i] === "'" || line[i] === "`") {
         const quote = line[i]
         let j = i + 1
@@ -239,7 +252,6 @@ function tokenize(code: string, language: string) {
         i = j + 1
         continue
       }
-      // Numbers
       if (/\d/.test(line[i]) && (i === 0 || !/\w/.test(line[i - 1]))) {
         let j = i
         while (j < line.length && /[\d.]/.test(line[j])) j++
@@ -247,7 +259,6 @@ function tokenize(code: string, language: string) {
         i = j
         continue
       }
-      // JSX/HTML tags
       if (line[i] === "<" && language === "tsx") {
         const tagMatch = line.slice(i).match(/^<\/?([A-Za-z][A-Za-z0-9.]*)/)
         if (tagMatch) {
@@ -262,7 +273,6 @@ function tokenize(code: string, language: string) {
           continue
         }
       }
-      // Words
       if (/[a-zA-Z_$]/.test(line[i])) {
         let j = i
         while (j < line.length && /[\w$]/.test(line[j])) j++
@@ -281,7 +291,6 @@ function tokenize(code: string, language: string) {
         i = j
         continue
       }
-      // Braces / operators
       tokens.push({ text: line[i], type: "plain" })
       i++
     }
@@ -316,13 +325,18 @@ export function CodeEditor({
   ])
   const [copied, setCopied] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
+  const [showCopilotHint, setShowCopilotHint] = useState(true)
+  const [copilotEnabled, setCopilotEnabled] = useState(true)
 
   const currentTab = openTabs.find((t) => t.name === activeFile)
   const content = currentTab?.content ?? FILE_CONTENTS[activeFile]?.content ?? "// No content"
   const language = currentTab?.language ?? FILE_CONTENTS[activeFile]?.language ?? "ts"
 
   const tokens = useMemo(() => tokenize(content, language), [content, language])
-  const lineCount = content.split("\n").length
+  const lines = content.split("\n")
+  const lineCount = lines.length
+
+  const copilotSuggestion = copilotEnabled ? COPILOT_SUGGESTIONS[activeFile] : null
 
   const handleCloseTab = (name: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -371,7 +385,9 @@ export function CodeEditor({
                 <FileCode2 className="size-3.5 shrink-0 text-syntax-function" />
               )}
               <span className="truncate">{tab.name}</span>
-              {tab.modified && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+              {tab.modified && (
+                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              )}
               <button
                 onClick={(e) => handleCloseTab(tab.name, e)}
                 className="p-0.5 rounded hover:bg-accent/50 shrink-0 ml-1"
@@ -383,46 +399,116 @@ export function CodeEditor({
           ))}
         </div>
         <div className="flex-1" />
-        <div className="flex items-center gap-1 px-2 shrink-0">
+        <div className="flex items-center gap-0.5 px-2 shrink-0">
+          {/* Copilot toggle */}
+          <button
+            onClick={() => setCopilotEnabled(!copilotEnabled)}
+            className={cn(
+              "flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-colors",
+              copilotEnabled
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title={copilotEnabled ? "Copilot: On" : "Copilot: Off"}
+          >
+            <Sparkles className="size-3" />
+            <span className="hidden sm:inline">Copilot</span>
+          </button>
           <button
             onClick={handleCopyAll}
             className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Copy code"
           >
-            {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+            {copied ? (
+              <Check className="size-3.5 text-primary" />
+            ) : (
+              <Copy className="size-3.5" />
+            )}
           </button>
-          <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" aria-label="More options">
+          <button
+            className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="More options"
+          >
             <MoreHorizontal className="size-3.5" />
           </button>
         </div>
       </div>
 
+      {/* Copilot banner */}
+      {copilotEnabled && showCopilotHint && copilotSuggestion && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/10 shrink-0">
+          <Bot className="size-3 text-primary shrink-0" />
+          <span className="text-[10px] text-primary/80 flex-1">
+            Copilot has a suggestion on line {copilotSuggestion.line}. Press <kbd className="px-1 py-0.5 rounded bg-primary/10 border border-primary/20 text-[9px] mx-0.5">Tab</kbd> to accept.
+          </span>
+          <button
+            onClick={() => setShowCopilotHint(false)}
+            className="p-0.5 rounded hover:bg-primary/10 text-primary/60"
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
+
       {/* Editor body */}
       <ScrollArea className="flex-1">
         <div className="flex min-h-full">
           {/* Gutter */}
-          <div className="flex flex-col items-end pt-3 pb-3 px-3 select-none shrink-0 bg-editor-bg border-r border-border/50">
+          <div className="flex flex-col items-end pt-3 pb-3 px-2 select-none shrink-0 bg-editor-bg border-r border-border/30">
             {Array.from({ length: lineCount }, (_, i) => (
-              <span key={i} className="text-[11px] font-mono leading-5 text-editor-gutter">
-                {i + 1}
-              </span>
-            ))}
-          </div>
-          {/* Code */}
-          <pre className="flex-1 pt-3 pb-3 px-4 overflow-x-auto">
-            <code className="text-[13px] font-mono leading-5">
-              {tokens.map((token, i) => (
-                <span key={i} className={getTokenClass(token.type)}>
-                  {token.text}
+              <div key={i} className="flex items-center h-5">
+                <span
+                  className={cn(
+                    "text-[11px] font-mono leading-5 min-w-[2ch] text-right",
+                    copilotSuggestion?.line === i + 1
+                      ? "text-primary"
+                      : "text-editor-gutter"
+                  )}
+                >
+                  {i + 1}
                 </span>
-              ))}
-            </code>
-          </pre>
+              </div>
+            ))}
+            {/* Ghost line for copilot suggestion */}
+            {copilotEnabled && copilotSuggestion && (
+              <div className="h-5" />
+            )}
+          </div>
+
+          {/* Code */}
+          <div className="flex-1 pt-3 pb-3 px-4 overflow-x-auto relative">
+            <pre>
+              <code className="text-[13px] font-mono leading-5">
+                {tokens.map((token, i) => (
+                  <span key={i} className={getTokenClass(token.type)}>
+                    {token.text}
+                  </span>
+                ))}
+              </code>
+            </pre>
+
+            {/* Copilot ghost text overlay */}
+            {copilotEnabled && copilotSuggestion && (
+              <div
+                className="absolute left-4 pointer-events-none"
+                style={{ top: `${(copilotSuggestion.line - 1) * 20 + 12 + 20}px` }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-mono leading-5 text-primary/30 italic">
+                    {copilotSuggestion.suggestion}
+                  </span>
+                  <span className="text-[8px] px-1 py-0.5 rounded bg-primary/10 text-primary/50 font-sans">
+                    Tab
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </ScrollArea>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 h-7 bg-primary/10 border-t border-border text-[11px] text-muted-foreground shrink-0">
+      <div className="flex items-center justify-between px-3 h-7 bg-primary/8 border-t border-border text-[10px] text-muted-foreground shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowTerminal(!showTerminal)}
@@ -435,11 +521,19 @@ export function CodeEditor({
             <GitBranch className="size-3" />
             main
           </span>
+          {copilotEnabled && (
+            <span className="flex items-center gap-1 text-primary/70">
+              <Sparkles className="size-2.5" />
+              Copilot
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <span>{language.toUpperCase()}</span>
           <span>UTF-8</span>
-          <span>Ln {lineCount}, Col 1</span>
+          <span>
+            Ln {lineCount}, Col 1
+          </span>
         </div>
       </div>
 
@@ -447,9 +541,18 @@ export function CodeEditor({
       {showTerminal && (
         <div className="h-36 border-t border-border bg-background shrink-0">
           <div className="flex items-center justify-between px-3 h-8 bg-panel-header border-b border-border">
-            <div className="flex items-center gap-2">
-              <Terminal className="size-3.5 text-primary" />
-              <span className="text-xs text-foreground font-medium">Terminal</span>
+            <div className="flex items-center gap-4">
+              <button className="flex items-center gap-1.5 text-xs text-foreground font-medium border-b-2 border-primary pb-0.5">
+                <Terminal className="size-3 text-primary" />
+                Terminal
+              </button>
+              <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Output
+              </button>
+              <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Problems
+                <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-500/15 text-amber-400">1</span>
+              </button>
             </div>
             <button
               onClick={() => setShowTerminal(false)}
@@ -459,11 +562,26 @@ export function CodeEditor({
               <X className="size-3.5" />
             </button>
           </div>
-          <div className="p-2 font-mono text-xs text-muted-foreground">
-            <p className="text-primary">{'>'} forge dev</p>
-            <p className="text-foreground mt-1">  Ready in 1.2s</p>
-            <p className="mt-0.5">  Local: http://localhost:3000</p>
-            <p className="text-primary/60 mt-1 animate-pulse">{'|'}</p>
+          <div className="p-2 font-mono text-xs text-muted-foreground overflow-y-auto h-[calc(100%-32px)]">
+            <p>
+              <span className="text-primary/70">$</span>{" "}
+              <span className="text-foreground">forge dev</span>
+            </p>
+            <p className="text-primary mt-1">
+              {"  "}Forge IDE v2.0 - Multi-Agent AI Engine
+            </p>
+            <p className="text-foreground mt-0.5">
+              {"  "}Ready in 0.8s
+            </p>
+            <p className="mt-0.5">
+              {"  "}Local: http://localhost:3000
+            </p>
+            <p className="mt-0.5">
+              {"  "}Network: http://192.168.1.42:3000
+            </p>
+            <p className="text-primary/60 mt-1.5 animate-pulse">
+              {"  "}Copilot active with Gemini 3 Flash
+            </p>
           </div>
         </div>
       )}
