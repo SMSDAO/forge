@@ -239,7 +239,7 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="ide-panel bg-background">
       {/* Header */}
       <div className="flex items-center justify-between px-3 h-11 border-b border-border bg-panel-header shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -313,7 +313,7 @@ export function ChatPanel() {
 
       {/* Messages or empty state */}
       {messages.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto">
+        <div className="ide-panel-scroll flex flex-col items-center justify-center px-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
             <Sparkles className="size-7 text-primary" />
           </div>
@@ -356,7 +356,7 @@ export function ChatPanel() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
+        <div className="ide-panel-scroll">
           <div className="flex flex-col gap-0.5 p-3">
             {messages.map((message) => (
               <div

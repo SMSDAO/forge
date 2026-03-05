@@ -38,7 +38,7 @@ export function PreviewPanel() {
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-background",
+      "ide-panel bg-background",
       isFullscreen && "fixed inset-0 z-[90]"
     )}>
       {/* Toolbar */}
@@ -114,7 +114,7 @@ export function PreviewPanel() {
       </div>
 
       {/* Preview content */}
-      <div className="flex-1 flex items-start justify-center bg-secondary/20 overflow-auto">
+      <div className="ide-panel-scroll flex items-start justify-center bg-secondary/20">
         <div
           className={cn(
             "h-full bg-background overflow-hidden transition-all duration-300",

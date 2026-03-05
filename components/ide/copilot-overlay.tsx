@@ -209,7 +209,7 @@ export function CopilotOverlay({
         </div>
 
         {/* Quick actions */}
-        <div className="p-2 max-h-[280px] overflow-y-auto">
+        <div className="p-2 max-h-[280px] overflow-y-auto overscroll-contain">
           <div className="flex flex-col gap-0.5">
             {filteredActions.map((action) => (
               <button
