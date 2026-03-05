@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import {
   Send,
   Sparkles,
@@ -109,7 +109,7 @@ export function ChatPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const activeThread = threads.find((t) => t.id === activeThreadId)
-  const messages = activeThread?.messages ?? []
+  const messages = useMemo(() => activeThread?.messages ?? [], [activeThread])
 
   // Auto-resize textarea
   useEffect(() => {
