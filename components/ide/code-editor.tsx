@@ -301,13 +301,18 @@ export function CodeEditor({
   vfs: Record<string, VFSFile>
   onVfsUpdate: (name: string, content: string) => void
 }) {
-  const [openTabs, setOpenTabs] = useState<string[]>(["page.tsx", "layout.tsx"])
+  const [openTabs, setOpenTabs] = useState<string[]>(() => {
+    const initial = ["page.tsx", "layout.tsx"]
+    if (activeFile && !initial.includes(activeFile)) initial.push(activeFile)
+    return initial
+  })
   const [copied, setCopied] = useState(false)
   const [showTerminal, setShowTerminal] = useState(true)
   const [termTab, setTermTab] = useState<"terminal" | "output" | "problems">("terminal")
   const [copilotOn, setCopilotOn] = useState(true)
   const [wordWrap, setWordWrap] = useState(false)
   const [termInput, setTermInput] = useState("")
+  const [curLine, setCurLine] = useState(1)
   const [termHistory, setTermHistory] = useState([
     { t: "sys", v: "Forge Cloud Terminal v3.0 -- Node 20.11 | pnpm 9.1" },
     { t: "cmd", v: "pnpm dev --turbopack" },
@@ -315,16 +320,19 @@ export function CodeEditor({
     { t: "out", v: "  Local: http://localhost:3000" },
     { t: "ok",  v: "  Ready in 847ms" },
   ])
+  // Track previous activeFile to open new tabs without an effect
+  const [prevActiveFile, setPrevActiveFile] = useState(activeFile)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const preRef = useRef<HTMLPreElement>(null)
   const termEndRef = useRef<HTMLDivElement>(null)
 
-  // Open tab when file changes
-  useEffect(() => {
+  // Open tab when activeFile changes (using render-time state sync per React docs)
+  if (activeFile !== prevActiveFile) {
+    setPrevActiveFile(activeFile)
     if (activeFile && !openTabs.includes(activeFile)) {
       setOpenTabs(prev => [...prev, activeFile])
     }
-  }, [activeFile, openTabs])
+  }
 
   // Scroll terminal to bottom
   useEffect(() => { termEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [termHistory])
@@ -391,11 +399,13 @@ export function CodeEditor({
   }
 
   const problems = [{ type: "warn" as const, file: "page.tsx", line: 5, text: "Unused import: CardHeader" }]
-  const curLine = (() => {
-    if (!textareaRef.current) return 1
-    const val = textareaRef.current.value.substring(0, textareaRef.current.selectionStart)
-    return val.split("\n").length
-  })()
+
+  const handleCursorChange = useCallback(() => {
+    if (textareaRef.current) {
+      const val = textareaRef.current.value.substring(0, textareaRef.current.selectionStart)
+      setCurLine(val.split("\n").length)
+    }
+  }, [])
 
   return (
     <div className="ide-panel bg-editor-bg">
@@ -480,6 +490,8 @@ export function CodeEditor({
               onChange={handleTextChange}
               onScroll={handleScroll}
               onKeyDown={handleTabKey}
+              onKeyUp={handleCursorChange}
+              onClick={handleCursorChange}
               spellCheck={false}
               autoCapitalize="off"
               autoComplete="off"
