@@ -29,6 +29,8 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write   # required to attach APK to GitHub Releases
 
     steps:
       - name: Checkout repository
