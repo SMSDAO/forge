@@ -90,13 +90,6 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Download Gradle wrapper JAR
-        run: |
-          mkdir -p android/gradle/wrapper
-          curl -sSfL \
-            "https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
-            -o android/gradle/wrapper/gradle-wrapper.jar
-
       - name: Build debug APK
         if: ${{ !(github.event.inputs.release_type == 'release' && github.event_name == 'workflow_dispatch') }}
         working-directory: android

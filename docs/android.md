@@ -147,18 +147,11 @@ capacitor.config.ts                    # Root Capacitor configuration
 Run `pnpm run export:android` first to create the `out/` directory.
 
 **`gradle-wrapper.jar` missing**
-The binary JAR is not stored in this repository. Either regenerate it:
+The binary JAR is stored in `android/gradle/wrapper/gradle-wrapper.jar`.  If it is accidentally deleted, regenerate it:
 ```bash
 cd android
 gradle wrapper --gradle-version 8.4 --distribution-type bin
 ```
-or download it directly:
-```bash
-curl -sSfL \
-  "https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
-  -o android/gradle/wrapper/gradle-wrapper.jar
-```
-The CI workflow fetches the JAR automatically.
 
 **Blank screen on device**
 Ensure `allowNavigation` is set if using a remote `SERVER_URL`, and that the server is accessible from the device.
