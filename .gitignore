@@ -20,3 +20,7 @@ android/capacitor-cordova-android-plugins/
 android/app/src/main/assets/public/
 android/.idea/
 android/*.iml
+
+# Desktop (Electron) build artifacts
+electron/dist/
+dist-desktop/
