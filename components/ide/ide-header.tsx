@@ -72,12 +72,12 @@ export function IdeHeader({
         >
           <Menu className="size-4" />
         </button>
-        <div className="flex items-center gap-1.5">
+        <Link href="/" className="flex items-center gap-1.5">
           <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_8px_oklch(0.72_0.18_200/0.4)]">
             <Zap className="size-3.5 text-primary-foreground" />
           </div>
           <span className="text-xs font-bold text-foreground hidden sm:block">Forge</span>
-        </div>
+        </Link>
         <div className="h-4 w-px bg-border mx-0.5 hidden sm:block" />
 
         {/* Project selector */}

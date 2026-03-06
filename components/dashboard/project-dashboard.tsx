@@ -383,7 +383,7 @@ function ProjectCard({
       {/* Actions */}
       <div className="flex items-center gap-1.5 mt-auto pt-1">
         <Link
-          href="/"
+          href="/ide"
           className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
         >
           <Zap className="size-3" />
@@ -507,7 +507,7 @@ export function ProjectDashboard({
         </nav>
         <div className="flex items-center gap-2">
           <Link
-            href="/"
+            href="/ide"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             <Zap className="size-3.5" />Open IDE
@@ -702,7 +702,7 @@ export function ProjectDashboard({
                 </div>
               ))}
               <div className="flex items-center justify-center pt-4">
-                <Link href="/" className="flex items-center gap-1.5 text-xs text-primary hover:opacity-80 transition-opacity">
+                <Link href="/ide" className="flex items-center gap-1.5 text-xs text-primary hover:opacity-80 transition-opacity">
                   Open IDE to create a pull request <ArrowUpRight className="size-3" />
                 </Link>
               </div>

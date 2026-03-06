@@ -3,9 +3,9 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Forge IDE - AI-Powered Code Editor',
-  description: 'Build apps faster with AI. Chat, code, and preview in one powerful IDE.',
-  generator: 'Forge IDE',
+  title: 'FORGES — Build. Deploy. Ship.',
+  description: 'Create and launch applications using AI, GitHub workflows, and instant cloud deployment.',
+  generator: 'FORGES',
   icons: {
     icon: [
       {
