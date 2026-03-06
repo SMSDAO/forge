@@ -25,6 +25,7 @@ import {
   actionListDeployments,
   actionListMessages,
 } from "@/lib/actions"
+import { MIGRATIONS } from "@/lib/migrations"
 
 type SidebarView = "chat" | "files" | "search" | "git" | "debug" | "extensions" | "database"
 
@@ -32,6 +33,7 @@ export function IdeLayout() {
   // ═══════ Shared VFS state ═══════
   const [vfs, setVfs] = useState<Record<string, VFSFile>>(() => ({ ...FILE_CONTENTS }))
   const [activeFile, setActiveFile] = useState("page.tsx")
+  const [activeProjectId] = useState("proj-1")
   const [sidebarView, setSidebarView] = useState<SidebarView>("chat")
   const [mobileTab, setMobileTab] = useState<MobileTab>("chat")
   const [showSidebar, setShowSidebar] = useState(true)
@@ -122,7 +124,7 @@ export function IdeLayout() {
           </ResizablePanel>
           <ResizableHandle className="w-px bg-border hover:bg-primary/40 transition-colors data-[resize-handle-state=drag]:bg-primary/60" />
           <ResizablePanel defaultSize={35} minSize={20}>
-            <PreviewPanel />
+            <PreviewPanel projectId={activeProjectId} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
@@ -136,7 +138,7 @@ export function IdeLayout() {
         <div className={cn("w-full h-full", mobileTab !== "editor" && "hidden")}>
           <CodeEditor activeFile={activeFile} onFileChange={setActiveFile} vfs={vfs} onVfsUpdate={handleVfsUpdate} />
         </div>
-        <div className={cn("w-full h-full", mobileTab !== "preview" && "hidden")}><PreviewPanel /></div>
+        <div className={cn("w-full h-full", mobileTab !== "preview" && "hidden")}><PreviewPanel projectId={activeProjectId} /></div>
         <div className={cn("w-full h-full", mobileTab !== "terminal" && "hidden")}><CloudTerminalPanel /></div>
         <div className={cn("w-full h-full", mobileTab !== "database" && "hidden")}><DatabasePanel /></div>
       </div>
@@ -345,17 +347,24 @@ function DatabasePanel() {
       actionListFiles(projectId),
       actionListDeployments(projectId),
       actionListMessages(projectId),
-    ]).then(([projects, files, deployments, messages]) => {
-      if (cancelled) return
-      setCounts({
-        users: 1,
-        projects: projects.data.length,
-        messages: messages.data.length,
-        files: files.data.length,
-        deployments: deployments.data.length,
+    ])
+      .then(([projects, files, deployments, messages]) => {
+        if (cancelled) return
+        setCounts({
+          users: 1,
+          projects: projects.data.length,
+          messages: messages.data.length,
+          files: files.data.length,
+          deployments: deployments.data.length,
+        })
       })
-      setCountsLoading(false)
-    })
+      .catch((error) => {
+        if (cancelled) return
+        console.error("Failed to load database counts:", error)
+      })
+      .finally(() => {
+        if (!cancelled) setCountsLoading(false)
+      })
     return () => { cancelled = true }
   }, [])
 
@@ -370,12 +379,12 @@ function DatabasePanel() {
     { name: "files", rows: counts.files ?? 0, columns: ["id", "project_id", "path", "content", "language"] },
     { name: "deployments", rows: counts.deployments ?? 0, columns: ["id", "project_id", "status", "url", "created_at"] },
   ]
-  const migrations = [
-    { id: "001", name: "create_users_table", status: "applied", date: "2026-02-15" },
-    { id: "002", name: "create_projects_table", status: "applied", date: "2026-02-16" },
-    { id: "003", name: "add_messages_table", status: "applied", date: "2026-02-20" },
-    { id: "004", name: "add_files_and_deployments", status: "applied", date: "2026-03-04" },
-  ]
+  const migrations = MIGRATIONS.map(m => ({
+    id: m.id,
+    name: m.name,
+    status: "applied" as const,
+    date: m.createdAt,
+  }))
 
   return (
     <div className="ide-panel bg-background">

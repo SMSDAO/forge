@@ -170,7 +170,7 @@ export function ChatPanel() {
       agentId: null,
       modelId: selectedModel.id,
       codeBlocks: [],
-    })
+    }).catch(() => {})
     setIsGenerating(true)
 
     const thinkingId = crypto.randomUUID()
@@ -234,7 +234,7 @@ export function ChatPanel() {
           code: cb.code,
           filename: cb.filename ?? null,
         })),
-      })
+      }).catch(() => {})
       setIsGenerating(false)
     }, 2200)
   }, [input, isGenerating, activeThreadId, createThread, selectedAgent, selectedModel])

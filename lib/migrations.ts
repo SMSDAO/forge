@@ -3,11 +3,12 @@
  * Schema migration definitions for Forge domain entities.
  *
  * These migrations describe the DDL required to materialize the schema
- * in a real Postgres-compatible database (Supabase, Neon, PlanetScale, etc.).
+ * in a real Postgres-compatible database (e.g., Supabase, Neon, Amazon RDS).
  *
  * How to apply:
- *   1. Set DB_PROVIDER and the relevant connection env-vars.
- *   2. Run: `npx ts-node lib/migrations.ts` (or use your ORM's migration runner).
+ *   1. Use `getMigrationSql()` to generate the full migration SQL.
+ *   2. Apply the output using your preferred tool (psql, Supabase SQL editor,
+ *      an ORM migration runner, etc.).
  *
  * Migrations are ordered and idempotent — they use CREATE TABLE IF NOT EXISTS.
  */

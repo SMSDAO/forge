@@ -33,7 +33,12 @@ export function useProjects(ownerId: string): UseProjectsState {
   const [error, setError] = useState<string | null>(null)
 
   const fetch = useCallback(async () => {
-    if (!ownerId) return
+    if (!ownerId) {
+      setProjects([])
+      setError(null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     const result: ActionListResult<Project> = await actionListProjects(ownerId)
@@ -64,7 +69,12 @@ export function useProject(id: string): UseProjectState {
   const [error, setError] = useState<string | null>(null)
 
   const fetch = useCallback(async () => {
-    if (!id) return
+    if (!id) {
+      setProject(null)
+      setError(null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     const result: ActionResult<Project> = await actionGetProject(id)
@@ -98,7 +108,12 @@ export function useProjectFiles(projectId: string): UseProjectFilesState {
   const [error, setError] = useState<string | null>(null)
 
   const fetch = useCallback(async () => {
-    if (!projectId) return
+    if (!projectId) {
+      setFiles([])
+      setError(null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     const result: ActionListResult<ProjectFile> = await actionListFiles(projectId)
@@ -156,7 +171,12 @@ export function useDeployments(projectId: string): UseDeploymentsState {
   const [error, setError] = useState<string | null>(null)
 
   const fetch = useCallback(async () => {
-    if (!projectId) return
+    if (!projectId) {
+      setDeployments([])
+      setError(null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     const result: ActionListResult<Deployment> = await actionListDeployments(projectId)
@@ -192,7 +212,12 @@ export function useMessages(projectId: string, threadId?: string): UseMessagesSt
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!projectId) return
+    if (!projectId) {
+      setMessages([])
+      setError(null)
+      setLoading(false)
+      return
+    }
     let cancelled = false
     setLoading(true)
     setError(null)

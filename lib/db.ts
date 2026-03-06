@@ -5,13 +5,14 @@
  * All functions are pure, side-effect-free outside DB access, and strictly typed.
  * No `any` types are used.
  *
- * DB provider is selected via the DB_PROVIDER env-var:
- *   - "supabase"  → SUPABASE_URL + SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY)
- *   - "postgres"  → DATABASE_URL (any Postgres-compatible: Neon, PlanetScale, etc.)
- *   - (default)   → in-memory store (development / test)
- *
- * When a real driver is added, replace the provider stubs below while keeping
+ * The current implementation uses an in-memory store suitable for development
+ * and testing. To connect to a real database (Supabase, Neon, etc.), replace
+ * the function bodies below with the appropriate driver calls while keeping
  * all function signatures identical.
+ *
+ * Suggested env-vars for a real provider:
+ *   - SUPABASE_URL + SUPABASE_ANON_KEY  (Supabase)
+ *   - DATABASE_URL                       (Neon, RDS, etc.)
  */
 
 // ─────────────────────────────────────────────
@@ -137,7 +138,6 @@ function createStore(): InMemoryStore {
     updatedAt: now,
   })
 
-  const projectIds = ["proj-1", "proj-2", "proj-3"]
   const projectSeeds: Project[] = [
     {
       id: "proj-1",
@@ -249,8 +249,6 @@ function createStore(): InMemoryStore {
   }
   messages.set(msgSeed.id, msgSeed)
 
-  void projectIds // suppress unused-var warning
-
   return { users, projects, projectFiles, messages, deployments }
 }
 
@@ -300,7 +298,8 @@ export async function getUser(id: string): Promise<DbResult<User>> {
     const user = getStore().users.get(id)
     return user ? ok(user) : err("User not found")
   } catch (e) {
-    return err(String(e))
+    console.error("getUser error", e)
+    return err("Internal error")
   }
 }
 
@@ -309,18 +308,23 @@ export async function getUserByEmail(email: string): Promise<DbResult<User>> {
     const user = Array.from(getStore().users.values()).find(u => u.email === email)
     return user ? ok(user) : err("User not found")
   } catch (e) {
-    return err(String(e))
+    console.error("getUserByEmail error", e)
+    return err("Internal error")
   }
 }
 
 export async function createUser(input: CreateUserInput): Promise<DbResult<User>> {
   try {
+    const store = getStore()
+    const existing = Array.from(store.users.values()).find(u => u.email === input.email)
+    if (existing) return err("User with this email already exists")
     const now = new Date()
     const user: User = { ...input, id: newId(), createdAt: now, updatedAt: now }
-    getStore().users.set(user.id, user)
+    store.users.set(user.id, user)
     return ok(user)
   } catch (e) {
-    return err(String(e))
+    console.error("createUser error", e)
+    return err("Internal error")
   }
 }
 
@@ -333,7 +337,8 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Db
     store.users.set(id, updated)
     return ok(updated)
   } catch (e) {
-    return err(String(e))
+    console.error("updateUser error", e)
+    return err("Internal error")
   }
 }
 
@@ -348,7 +353,8 @@ export async function listProjects(ownerId: string): Promise<DbListResult<Projec
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     return listOk(projects)
   } catch (e) {
-    return listErr(String(e))
+    console.error("listProjects error", e)
+    return listErr("Internal error")
   }
 }
 
@@ -357,7 +363,8 @@ export async function getProject(id: string): Promise<DbResult<Project>> {
     const project = getStore().projects.get(id)
     return project ? ok(project) : err("Project not found")
   } catch (e) {
-    return err(String(e))
+    console.error("getProject error", e)
+    return err("Internal error")
   }
 }
 
@@ -368,7 +375,8 @@ export async function createProject(input: CreateProjectInput): Promise<DbResult
     getStore().projects.set(project.id, project)
     return ok(project)
   } catch (e) {
-    return err(String(e))
+    console.error("createProject error", e)
+    return err("Internal error")
   }
 }
 
@@ -381,7 +389,8 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
     store.projects.set(id, updated)
     return ok(updated)
   } catch (e) {
-    return err(String(e))
+    console.error("updateProject error", e)
+    return err("Internal error")
   }
 }
 
@@ -396,7 +405,8 @@ export async function deleteProject(id: string): Promise<DbResult<void>> {
     for (const [k, d] of store.deployments) { if (d.projectId === id) store.deployments.delete(k) }
     return ok(undefined)
   } catch (e) {
-    return err(String(e))
+    console.error("deleteProject error", e)
+    return err("Internal error")
   }
 }
 
@@ -411,7 +421,8 @@ export async function listProjectFiles(projectId: string): Promise<DbListResult<
       .sort((a, b) => a.path.localeCompare(b.path))
     return listOk(files)
   } catch (e) {
-    return listErr(String(e))
+    console.error("listProjectFiles error", e)
+    return listErr("Internal error")
   }
 }
 
@@ -420,7 +431,8 @@ export async function getProjectFile(id: string): Promise<DbResult<ProjectFile>>
     const file = getStore().projectFiles.get(id)
     return file ? ok(file) : err("File not found")
   } catch (e) {
-    return err(String(e))
+    console.error("getProjectFile error", e)
+    return err("Internal error")
   }
 }
 
@@ -431,24 +443,26 @@ export async function getProjectFileByPath(projectId: string, path: string): Pro
     )
     return file ? ok(file) : err("File not found")
   } catch (e) {
-    return err(String(e))
+    console.error("getProjectFileByPath error", e)
+    return err("Internal error")
   }
 }
 
 export async function createProjectFile(input: CreateProjectFileInput): Promise<DbResult<ProjectFile>> {
   try {
+    const store = getStore()
+    const duplicate = Array.from(store.projectFiles.values()).find(
+      f => f.projectId === input.projectId && f.path === input.path
+    )
+    if (duplicate) return err("A file with this path already exists in the project")
     const now = new Date()
-    const file: ProjectFile = {
-      ...input,
-      id: newId(),
-      size: input.size ?? Buffer.byteLength(input.content, "utf8"),
-      createdAt: now,
-      updatedAt: now,
-    }
-    getStore().projectFiles.set(file.id, file)
+    const size = input.size ?? new TextEncoder().encode(input.content).length
+    const file: ProjectFile = { ...input, id: newId(), size, createdAt: now, updatedAt: now }
+    store.projectFiles.set(file.id, file)
     return ok(file)
   } catch (e) {
-    return err(String(e))
+    console.error("createProjectFile error", e)
+    return err("Internal error")
   }
 }
 
@@ -457,18 +471,26 @@ export async function updateProjectFile(id: string, input: UpdateProjectFileInpu
     const store = getStore()
     const existing = store.projectFiles.get(id)
     if (!existing) return err("File not found")
+    // Enforce path uniqueness when path is being changed
+    if (input.path && input.path !== existing.path) {
+      const duplicate = Array.from(store.projectFiles.values()).find(
+        f => f.id !== id && f.projectId === existing.projectId && f.path === input.path
+      )
+      if (duplicate) return err("A file with this path already exists in the project")
+    }
     const content = input.content ?? existing.content
     const updated: ProjectFile = {
       ...existing,
       ...input,
       id,
-      size: Buffer.byteLength(content, "utf8"),
+      size: new TextEncoder().encode(content).length,
       updatedAt: new Date(),
     }
     store.projectFiles.set(id, updated)
     return ok(updated)
   } catch (e) {
-    return err(String(e))
+    console.error("updateProjectFile error", e)
+    return err("Internal error")
   }
 }
 
@@ -479,7 +501,8 @@ export async function deleteProjectFile(id: string): Promise<DbResult<void>> {
     store.projectFiles.delete(id)
     return ok(undefined)
   } catch (e) {
-    return err(String(e))
+    console.error("deleteProjectFile error", e)
+    return err("Internal error")
   }
 }
 
@@ -494,7 +517,8 @@ export async function listMessages(projectId: string, threadId?: string): Promis
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     return listOk(messages)
   } catch (e) {
-    return listErr(String(e))
+    console.error("listMessages error", e)
+    return listErr("Internal error")
   }
 }
 
@@ -503,7 +527,8 @@ export async function getMessage(id: string): Promise<DbResult<Message>> {
     const msg = getStore().messages.get(id)
     return msg ? ok(msg) : err("Message not found")
   } catch (e) {
-    return err(String(e))
+    console.error("getMessage error", e)
+    return err("Internal error")
   }
 }
 
@@ -513,7 +538,8 @@ export async function createMessage(input: CreateMessageInput): Promise<DbResult
     getStore().messages.set(message.id, message)
     return ok(message)
   } catch (e) {
-    return err(String(e))
+    console.error("createMessage error", e)
+    return err("Internal error")
   }
 }
 
@@ -524,7 +550,8 @@ export async function deleteMessage(id: string): Promise<DbResult<void>> {
     store.messages.delete(id)
     return ok(undefined)
   } catch (e) {
-    return err(String(e))
+    console.error("deleteMessage error", e)
+    return err("Internal error")
   }
 }
 
@@ -539,7 +566,8 @@ export async function listDeployments(projectId: string): Promise<DbListResult<D
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     return listOk(deployments)
   } catch (e) {
-    return listErr(String(e))
+    console.error("listDeployments error", e)
+    return listErr("Internal error")
   }
 }
 
@@ -548,7 +576,8 @@ export async function getDeployment(id: string): Promise<DbResult<Deployment>> {
     const deployment = getStore().deployments.get(id)
     return deployment ? ok(deployment) : err("Deployment not found")
   } catch (e) {
-    return err(String(e))
+    console.error("getDeployment error", e)
+    return err("Internal error")
   }
 }
 
@@ -559,7 +588,8 @@ export async function createDeployment(input: CreateDeploymentInput): Promise<Db
     getStore().deployments.set(deployment.id, deployment)
     return ok(deployment)
   } catch (e) {
-    return err(String(e))
+    console.error("createDeployment error", e)
+    return err("Internal error")
   }
 }
 
@@ -572,6 +602,7 @@ export async function updateDeployment(id: string, input: UpdateDeploymentInput)
     store.deployments.set(id, updated)
     return ok(updated)
   } catch (e) {
-    return err(String(e))
+    console.error("updateDeployment error", e)
+    return err("Internal error")
   }
 }

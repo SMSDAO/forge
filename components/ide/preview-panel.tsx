@@ -35,7 +35,7 @@ const DEPLOY_STATUS_COLORS: Record<Deployment["status"], string> = {
   cancelled: "bg-muted-foreground",
 }
 
-export function PreviewPanel() {
+export function PreviewPanel({ projectId = "proj-1" }: { projectId?: string }) {
   const [viewport, setViewport] = useState<ViewportSize>("desktop")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [url, setUrl] = useState("localhost:3000")
@@ -44,15 +44,16 @@ export function PreviewPanel() {
 
   // Load latest deployment for current project
   useEffect(() => {
+    if (!projectId) return
     let cancelled = false
-    actionListDeployments("proj-1").then(result => {
+    actionListDeployments(projectId).then(result => {
       if (!cancelled && result.data.length > 0) {
         setLatestDeployment(result.data[0])
         if (result.data[0].url) setUrl(result.data[0].url.replace(/^https?:\/\//, ""))
       }
-    })
+    }).catch(() => {})
     return () => { cancelled = true }
-  }, [])
+  }, [projectId])
 
   const handleRefresh = () => {
     setIsRefreshing(true)

@@ -108,21 +108,30 @@ export async function actionListFiles(projectId: string): Promise<ActionListResu
 export async function actionGetFile(id: string): Promise<ActionResult<ProjectFile>> {
   if (!id) return failure("File ID is required")
   const result = await getProjectFile(id)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionGetFile: DB error", result.error)
+    return failure("Failed to load file")
+  }
   return success(result.data!)
 }
 
 export async function actionListDeployments(projectId: string): Promise<ActionListResult<Deployment>> {
   if (!projectId) return listFailure("Project ID is required")
   const result = await listDeployments(projectId)
-  if (result.error) return listFailure(result.error)
+  if (result.error) {
+    console.error("actionListDeployments: DB error", result.error)
+    return listFailure("Failed to list deployments")
+  }
   return listSuccess(result.data)
 }
 
 export async function actionGetDeployment(id: string): Promise<ActionResult<Deployment>> {
   if (!id) return failure("Deployment ID is required")
   const result = await getDeployment(id)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionGetDeployment: DB error", result.error)
+    return failure("Failed to load deployment")
+  }
   return success(result.data!)
 }
 
@@ -132,7 +141,10 @@ export async function actionListMessages(
 ): Promise<ActionListResult<Message>> {
   if (!projectId) return listFailure("Project ID is required")
   const result = await listMessages(projectId, threadId)
-  if (result.error) return listFailure(result.error)
+  if (result.error) {
+    console.error("actionListMessages: DB error", result.error)
+    return listFailure("Failed to list messages")
+  }
   return listSuccess(result.data)
 }
 
@@ -162,7 +174,10 @@ export async function actionCreateProject(
     template: parsed.data.template ?? null,
     status: parsed.data.status,
   })
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionCreateProject: DB error", result.error)
+    return failure("Failed to create project")
+  }
   return success(result.data!)
 }
 
@@ -183,14 +198,20 @@ export async function actionUpdateProject(
   if (!parsed.success) return validationError(parsed.error.issues)
 
   const result = await updateProject(id, parsed.data)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionUpdateProject: DB error", result.error)
+    return failure("Failed to update project")
+  }
   return success(result.data!)
 }
 
 export async function actionDeleteProject(id: string): Promise<ActionResult> {
   if (!id) return failure("Project ID is required")
   const result = await deleteProject(id)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionDeleteProject: DB error", result.error)
+    return failure("Failed to delete project")
+  }
   return success(undefined)
 }
 
@@ -213,7 +234,10 @@ export async function actionCreateFile(
   if (!parsed.success) return validationError(parsed.error.issues)
 
   const result = await createProjectFile(parsed.data)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionCreateFile: DB error", result.error)
+    return failure("Failed to create file")
+  }
   return success(result.data!)
 }
 
@@ -233,14 +257,20 @@ export async function actionUpdateFile(
   if (!parsed.success) return validationError(parsed.error.issues)
 
   const result = await updateProjectFile(id, parsed.data)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionUpdateFile: DB error", result.error)
+    return failure("Failed to update file")
+  }
   return success(result.data!)
 }
 
 export async function actionDeleteFile(id: string): Promise<ActionResult> {
   if (!id) return failure("File ID is required")
   const result = await deleteProjectFile(id)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionDeleteFile: DB error", result.error)
+    return failure("Failed to delete file")
+  }
   return success(undefined)
 }
 
@@ -272,7 +302,10 @@ export async function actionCreateDeployment(
     commitMessage: parsed.data.commitMessage ?? null,
     buildLogs: parsed.data.buildLogs ?? null,
   })
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionCreateDeployment: DB error", result.error)
+    return failure("Failed to create deployment")
+  }
   return success(result.data!)
 }
 
@@ -292,7 +325,10 @@ export async function actionUpdateDeployment(
   if (!parsed.success) return validationError(parsed.error.issues)
 
   const result = await updateDeployment(id, parsed.data)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionUpdateDeployment: DB error", result.error)
+    return failure("Failed to update deployment")
+  }
   return success(result.data!)
 }
 
@@ -337,6 +373,9 @@ export async function actionCreateMessage(
       filename: cb.filename ?? null,
     })),
   })
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionCreateMessage: DB error", result.error)
+    return failure("Failed to save message")
+  }
   return success(result.data!)
 }
