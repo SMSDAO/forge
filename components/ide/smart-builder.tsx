@@ -40,7 +40,7 @@ const TEMPLATES: ProjectTemplate[] = [
     icon: <Globe className="size-5" />,
     tags: ["marketing", "responsive"],
     stack: ["Next.js", "Tailwind", "Framer Motion"],
-    color: "#22c55e",
+    color: "#06b6d4",
   },
   {
     id: "dashboard",
@@ -111,7 +111,7 @@ const FEATURES = [
 ]
 
 const STYLE_PRESETS = [
-  { id: "minimal", label: "Minimal", description: "Clean, whitespace-focused", primary: "#18181b", accent: "#22c55e" },
+  { id: "minimal", label: "Minimal", description: "Clean, whitespace-focused", primary: "#18181b", accent: "#06b6d4" },
   { id: "bold", label: "Bold", description: "High contrast, strong typography", primary: "#000000", accent: "#ef4444" },
   { id: "soft", label: "Soft", description: "Rounded corners, gentle gradients", primary: "#6366f1", accent: "#f0abfc" },
   { id: "dark", label: "Dark Pro", description: "Professional dark theme", primary: "#0a0a12", accent: "#3b82f6" },
