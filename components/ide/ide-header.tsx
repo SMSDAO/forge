@@ -23,17 +23,22 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getRoleLabel, getRoleColor, type UserRole } from "@/lib/rbac"
+
+const DEFAULT_ROLE: UserRole = "developer"
 
 export function IdeHeader({
   onToggleSidebar,
   onOpenCopilot,
   onOpenBuilder,
   projectName = "my-forge-app",
+  userRole = DEFAULT_ROLE,
 }: {
   onToggleSidebar?: () => void
   onOpenCopilot?: () => void
   onOpenBuilder?: () => void
   projectName?: string
+  userRole?: UserRole
 }) {
   const [showProjectMenu, setShowProjectMenu] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
@@ -52,6 +57,8 @@ export function IdeHeader({
     setTimeout(() => setCopiedUrl(false), 2000)
   }
 
+  const roleColor = getRoleColor(userRole)
+
   return (
     <header className="flex items-center justify-between h-11 px-2 md:px-3 bg-panel-header border-b border-border shrink-0 z-50">
       {/* Left */}
@@ -64,7 +71,7 @@ export function IdeHeader({
           <Menu className="size-4" />
         </button>
         <div className="flex items-center gap-1.5">
-          <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center">
+          <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_8px_oklch(0.72_0.18_200/0.4)]">
             <Zap className="size-3.5 text-primary-foreground" />
           </div>
           <span className="text-xs font-bold text-foreground hidden sm:block">Forge</span>
@@ -250,8 +257,25 @@ export function IdeHeader({
         <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="Settings">
           <Settings className="size-3.5" />
         </button>
-        <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center ml-0.5 cursor-pointer hover:border-primary/50 transition-colors">
-          <span className="text-[10px] font-semibold text-primary">U</span>
+
+        {/* User avatar with RBAC role indicator */}
+        <div className="relative ml-0.5">
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-colors"
+            style={{
+              backgroundColor: `color-mix(in srgb, ${roleColor} 13%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${roleColor} 31%, transparent)`,
+            }}
+            title={getRoleLabel(userRole)}
+          >
+            <span className="text-[10px] font-semibold" style={{ color: roleColor }}>
+              {getRoleLabel(userRole)[0]}
+            </span>
+          </div>
+          <span
+            className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-panel-header"
+            style={{ backgroundColor: roleColor }}
+          />
         </div>
       </div>
     </header>

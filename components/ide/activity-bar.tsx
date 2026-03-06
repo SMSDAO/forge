@@ -41,14 +41,14 @@ export function ActivityBar({
             className={cn(
               "relative p-2 rounded-lg transition-colors",
               activeItem === item.id
-                ? "text-foreground bg-accent"
+                ? "text-primary bg-primary/10"
                 : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
             )}
             aria-label={item.label}
             title={item.label}
           >
             {activeItem === item.id && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r shadow-[0_0_4px_oklch(0.72_0.18_200/0.8)]" />
             )}
             {item.icon}
           </button>

@@ -529,7 +529,7 @@ export function CloudTerminalPanel() {
 function ExtensionsPanel() {
   const [installStates, setInstallStates] = useState<Record<string, "idle" | "installing" | "installed">>({})
   const extensions = [
-    { name: "AI Copilot", desc: "Inline code suggestions powered by AI", installed: true, color: "#22c55e", version: "3.2.1" },
+    { name: "AI Copilot", desc: "Inline code suggestions powered by AI", installed: true, color: "#06b6d4", version: "3.2.1" },
     { name: "Tailwind IntelliSense", desc: "Autocomplete for Tailwind classes", installed: true, color: "#38bdf8", version: "4.0.0" },
     { name: "ESLint", desc: "JavaScript linter for code quality", installed: true, color: "#4b32c3", version: "9.5.0" },
     { name: "Prettier", desc: "Opinionated code formatter", installed: true, color: "#f7b93e", version: "3.4.0" },

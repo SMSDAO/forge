@@ -10,7 +10,7 @@
   --card-foreground: oklch(0.95 0 0);
   --popover: oklch(0.13 0.005 260);
   --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.65 0.2 145);
+  --primary: oklch(0.72 0.18 200);
   --primary-foreground: oklch(0.1 0.005 260);
   --secondary: oklch(0.18 0.005 260);
   --secondary-foreground: oklch(0.85 0 0);
@@ -22,8 +22,8 @@
   --destructive-foreground: oklch(0.95 0 0);
   --border: oklch(0.22 0.01 260);
   --input: oklch(0.22 0.01 260);
-  --ring: oklch(0.65 0.2 145);
-  --chart-1: oklch(0.65 0.2 145);
+  --ring: oklch(0.72 0.18 200);
+  --chart-1: oklch(0.72 0.18 200);
   --chart-2: oklch(0.6 0.15 250);
   --chart-3: oklch(0.7 0.15 55);
   --chart-4: oklch(0.55 0.2 310);
@@ -31,12 +31,12 @@
   --radius: 0.5rem;
   --sidebar: oklch(0.12 0.005 260);
   --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.65 0.2 145);
+  --sidebar-primary: oklch(0.72 0.18 200);
   --sidebar-primary-foreground: oklch(0.1 0.005 260);
   --sidebar-accent: oklch(0.18 0.005 260);
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.22 0.01 260);
-  --sidebar-ring: oklch(0.65 0.2 145);
+  --sidebar-ring: oklch(0.72 0.18 200);
 
   --editor-bg: oklch(0.12 0.005 260);
   --editor-line: oklch(0.16 0.005 260);
@@ -143,8 +143,8 @@ textarea:focus, input:focus { outline: none; }
 
 /* ===== Resizable handles ===== */
 [data-slot="resizable-handle"] { transition: background-color 0.15s ease; }
-[data-slot="resizable-handle"]:hover { background-color: oklch(0.65 0.2 145 / 0.4) !important; }
-[data-slot="resizable-handle"][data-resize-handle-state="drag"] { background-color: oklch(0.65 0.2 145 / 0.6) !important; }
+[data-slot="resizable-handle"]:hover { background-color: oklch(0.72 0.18 200 / 0.4) !important; }
+[data-slot="resizable-handle"][data-resize-handle-state="drag"] { background-color: oklch(0.72 0.18 200 / 0.6) !important; }
 
 /* ===== Code fonts ===== */
 pre, code, .font-mono, textarea.font-mono {

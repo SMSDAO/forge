@@ -274,7 +274,7 @@ export const AI_AGENTS: AIAgent[] = [
     description: "Expert full-stack developer. Writes clean, production-ready code.",
     systemPrompt: "You are an expert full-stack developer. Write clean, well-structured, production-ready code following best practices.",
     preferredModel: "gemini-3-flash",
-    color: "#22c55e",
+    color: "#06b6d4",
     icon: "FC",
     capabilities: ["Code generation", "Refactoring", "Bug fixing", "API development"],
   },

@@ -45,7 +45,7 @@ export function MobileNav({
           aria-label={tab.label}
         >
           {activeTab === tab.id && (
-            <div className="absolute -top-px left-1/2 -translate-x-1/2 w-5 h-0.5 bg-primary rounded-b" />
+            <div className="absolute -top-px left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-b shadow-[0_0_6px_oklch(0.72_0.18_200/0.8)]" />
           )}
           {tab.icon}
           <span className="text-[9px] font-medium leading-none">{tab.label}</span>

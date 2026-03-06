@@ -74,7 +74,7 @@ export default function RootLayout({
 :root {
   --background: oklch(0.1 0.005 260);
   --foreground: oklch(0.95 0 0);
-  --primary: oklch(0.65 0.2 145);
+  --primary: oklch(0.72 0.18 200);
   --primary-foreground: oklch(0.1 0.005 260);
 }
 
