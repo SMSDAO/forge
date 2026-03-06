@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import {
   Zap,
   Play,
@@ -21,6 +22,7 @@ import {
   ExternalLink,
   Monitor,
   X,
+  LayoutDashboard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getRoleLabel, getRoleColor, type UserRole } from "@/lib/rbac"
@@ -70,12 +72,12 @@ export function IdeHeader({
         >
           <Menu className="size-4" />
         </button>
-        <div className="flex items-center gap-1.5">
+        <Link href="/" className="flex items-center gap-1.5">
           <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_8px_oklch(0.72_0.18_200/0.4)]">
             <Zap className="size-3.5 text-primary-foreground" />
           </div>
           <span className="text-xs font-bold text-foreground hidden sm:block">Forge</span>
-        </div>
+        </Link>
         <div className="h-4 w-px bg-border mx-0.5 hidden sm:block" />
 
         {/* Project selector */}
@@ -254,6 +256,14 @@ export function IdeHeader({
           <Sparkles className="size-4" />
         </button>
 
+        <Link
+          href="/dashboard"
+          className="hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          title="Project Dashboard"
+        >
+          <LayoutDashboard className="size-3.5" />
+          <span className="hidden md:inline">Dashboard</span>
+        </Link>
         <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="Settings">
           <Settings className="size-3.5" />
         </button>
