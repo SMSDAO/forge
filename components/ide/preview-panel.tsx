@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Globe,
   RefreshCw,
@@ -16,6 +16,8 @@ import {
   Minimize2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { actionListDeployments } from "@/lib/actions"
+import type { Deployment } from "@/lib/db"
 
 type ViewportSize = "mobile" | "tablet" | "desktop"
 
@@ -25,11 +27,32 @@ const VIEWPORTS: Record<ViewportSize, { width: string; icon: React.ReactNode; la
   desktop: { width: "100%", icon: <Monitor className="size-3.5" />, label: "Desktop" },
 }
 
+const DEPLOY_STATUS_COLORS: Record<Deployment["status"], string> = {
+  success: "bg-primary",
+  building: "bg-amber-400",
+  queued: "bg-muted-foreground",
+  failed: "bg-destructive",
+  cancelled: "bg-muted-foreground",
+}
+
 export function PreviewPanel() {
   const [viewport, setViewport] = useState<ViewportSize>("desktop")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [url, setUrl] = useState("localhost:3000")
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [latestDeployment, setLatestDeployment] = useState<Deployment | null>(null)
+
+  // Load latest deployment for current project
+  useEffect(() => {
+    let cancelled = false
+    actionListDeployments("proj-1").then(result => {
+      if (!cancelled && result.data.length > 0) {
+        setLatestDeployment(result.data[0])
+        if (result.data[0].url) setUrl(result.data[0].url.replace(/^https?:\/\//, ""))
+      }
+    })
+    return () => { cancelled = true }
+  }, [])
 
   const handleRefresh = () => {
     setIsRefreshing(true)
@@ -185,8 +208,13 @@ export function PreviewPanel() {
       <div className="flex items-center justify-between px-3 h-7 bg-primary/8 border-t border-border text-[10px] shrink-0">
         <div className="flex items-center gap-2 text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            Live
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              latestDeployment
+                ? DEPLOY_STATUS_COLORS[latestDeployment.status]
+                : "bg-primary animate-pulse"
+            )} />
+            {latestDeployment ? latestDeployment.status : "Live"}
           </span>
           <span className="hidden sm:inline font-mono">{url}</span>
         </div>

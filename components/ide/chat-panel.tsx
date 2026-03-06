@@ -29,6 +29,7 @@ import {
   type AIAgent,
   getProviderLabel,
 } from "@/lib/ai-models"
+import { actionCreateMessage } from "@/lib/actions"
 
 interface Message {
   id: string
@@ -160,6 +161,16 @@ export function ChatPanel() {
         t.id === threadId ? { ...t, messages: [...t.messages, userMessage] } : t
       )
     )
+    // Persist user message to DB (fire-and-forget; failures don't affect UI)
+    void actionCreateMessage({
+      projectId: "proj-1",
+      threadId: threadId!,
+      role: "user",
+      content: text,
+      agentId: null,
+      modelId: selectedModel.id,
+      codeBlocks: [],
+    })
     setIsGenerating(true)
 
     const thinkingId = crypto.randomUUID()
@@ -210,6 +221,20 @@ export function ChatPanel() {
             : t
         )
       )
+      // Persist assistant message to DB (fire-and-forget)
+      void actionCreateMessage({
+        projectId: "proj-1",
+        threadId: threadId!,
+        role: "assistant",
+        content: assistantMessage.content,
+        agentId: selectedAgent.id,
+        modelId: selectedModel.id,
+        codeBlocks: (assistantMessage.codeBlocks ?? []).map(cb => ({
+          language: cb.language,
+          code: cb.code,
+          filename: cb.filename ?? null,
+        })),
+      })
       setIsGenerating(false)
     }, 2200)
   }, [input, isGenerating, activeThreadId, createThread, selectedAgent, selectedModel])

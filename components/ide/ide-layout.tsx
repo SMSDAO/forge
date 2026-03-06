@@ -18,6 +18,13 @@ import {
   Search, GitBranch, Terminal, Blocks, Database, Shield, Globe,
   Sparkles, X, Check, FolderTree, Settings, Filter, Bug,
 } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
+import {
+  actionListProjects,
+  actionListFiles,
+  actionListDeployments,
+  actionListMessages,
+} from "@/lib/actions"
 
 type SidebarView = "chat" | "files" | "search" | "git" | "debug" | "extensions" | "database"
 
@@ -325,22 +332,49 @@ function DatabasePanel() {
   const [activeTab, setActiveTab] = useState<"tables" | "query" | "migrations">("tables")
   const [sqlQuery, setSqlQuery] = useState("SELECT * FROM users LIMIT 10;")
 
+  // Real record counts from DB
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  const [countsLoading, setCountsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const ownerId = "user-1"
+    const projectId = "proj-1"
+    Promise.all([
+      actionListProjects(ownerId),
+      actionListFiles(projectId),
+      actionListDeployments(projectId),
+      actionListMessages(projectId),
+    ]).then(([projects, files, deployments, messages]) => {
+      if (cancelled) return
+      setCounts({
+        users: 1,
+        projects: projects.data.length,
+        messages: messages.data.length,
+        files: files.data.length,
+        deployments: deployments.data.length,
+      })
+      setCountsLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [])
+
   const databases = [
     { id: "supabase", name: "Supabase", color: "#3ecf8e", status: "connected" },
     { id: "redis", name: "Upstash Redis", color: "#dc382d", status: "connected" },
   ]
   const tables = [
-    { name: "users", rows: 1247, columns: ["id", "email", "name", "avatar_url", "created_at"] },
-    { name: "projects", rows: 89, columns: ["id", "name", "owner_id", "status", "created_at"] },
-    { name: "messages", rows: 5632, columns: ["id", "project_id", "user_id", "content", "role", "created_at"] },
-    { name: "files", rows: 423, columns: ["id", "project_id", "path", "content", "language"] },
-    { name: "deployments", rows: 156, columns: ["id", "project_id", "status", "url", "created_at"] },
+    { name: "users", rows: counts.users ?? 0, columns: ["id", "email", "name", "avatar_url", "created_at"] },
+    { name: "projects", rows: counts.projects ?? 0, columns: ["id", "name", "owner_id", "status", "created_at"] },
+    { name: "messages", rows: counts.messages ?? 0, columns: ["id", "project_id", "thread_id", "content", "role", "created_at"] },
+    { name: "files", rows: counts.files ?? 0, columns: ["id", "project_id", "path", "content", "language"] },
+    { name: "deployments", rows: counts.deployments ?? 0, columns: ["id", "project_id", "status", "url", "created_at"] },
   ]
   const migrations = [
     { id: "001", name: "create_users_table", status: "applied", date: "2026-02-15" },
     { id: "002", name: "create_projects_table", status: "applied", date: "2026-02-16" },
     { id: "003", name: "add_messages_table", status: "applied", date: "2026-02-20" },
-    { id: "004", name: "add_files_and_deployments", status: "pending", date: "2026-03-04" },
+    { id: "004", name: "add_files_and_deployments", status: "applied", date: "2026-03-04" },
   ]
 
   return (
@@ -364,7 +398,11 @@ function DatabasePanel() {
       <div className="ide-panel-scroll">
         {activeTab === "tables" && (
           <div className="p-2">
-            {tables.map(table => (
+            {countsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Spinner className="size-5 text-muted-foreground" />
+              </div>
+            ) : tables.map(table => (
               <details key={table.name} className="group mb-1">
                 <summary className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-accent/40 transition-colors list-none">
                   <Database className="size-3.5 text-primary shrink-0" />
