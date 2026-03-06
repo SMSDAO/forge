@@ -78,21 +78,30 @@ function validationError<T = void>(issues: z.ZodIssue[]): ActionResult<T> {
 export async function actionListProjects(ownerId: string): Promise<ActionListResult<Project>> {
   if (!ownerId) return listFailure("Owner ID is required")
   const result = await listProjects(ownerId)
-  if (result.error) return listFailure(result.error)
+  if (result.error) {
+    console.error("actionListProjects: DB error", result.error)
+    return listFailure("Failed to list projects")
+  }
   return listSuccess(result.data)
 }
 
 export async function actionGetProject(id: string): Promise<ActionResult<Project>> {
   if (!id) return failure("Project ID is required")
   const result = await getProject(id)
-  if (result.error) return failure(result.error)
+  if (result.error) {
+    console.error("actionGetProject: DB error", result.error)
+    return failure("Failed to load project")
+  }
   return success(result.data!)
 }
 
 export async function actionListFiles(projectId: string): Promise<ActionListResult<ProjectFile>> {
   if (!projectId) return listFailure("Project ID is required")
   const result = await listProjectFiles(projectId)
-  if (result.error) return listFailure(result.error)
+  if (result.error) {
+    console.error("actionListFiles: DB error", result.error)
+    return listFailure("Failed to list files")
+  }
   return listSuccess(result.data)
 }
 
