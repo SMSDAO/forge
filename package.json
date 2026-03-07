@@ -2,13 +2,70 @@
   "name": "my-project",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/dist/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "export:android": "cross-env NEXT_BUILD_TARGET=android next build",
+    "build:android": "pnpm run export:android && cap sync android",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android",
+    "export:desktop": "cross-env NEXT_BUILD_TARGET=desktop next build",
+    "build:electron": "tsc --project electron/tsconfig.json",
+    "build:desktop": "pnpm run export:desktop && pnpm run build:electron && electron-builder",
+    "build:desktop:win": "pnpm run export:desktop && pnpm run build:electron && electron-builder --win",
+    "build:desktop:mac": "pnpm run export:desktop && pnpm run build:electron && electron-builder --mac",
+    "build:desktop:linux": "pnpm run export:desktop && pnpm run build:electron && electron-builder --linux",
+    "dev:electron": "pnpm run export:desktop && pnpm run build:electron && electron ."
+  },
+  "build": {
+    "appId": "com.smsdao.forges",
+    "productName": "FORGES",
+    "copyright": "Copyright © 2025 SMSDAO",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "out/**/*",
+      "electron/dist/**/*"
+    ],
+    "extraMetadata": {
+      "main": "electron/dist/main.js"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "public/placeholder-logo.png"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "public/apple-icon.png",
+      "category": "public.app-category.developer-tools",
+      "darkModeSupport": true
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] }
+      ],
+      "icon": "public/placeholder-logo.png",
+      "category": "Development"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/splash-screen": "^6.0.3",
     "@hookform/resolvers": "^3.9.1",
     "@vercel/analytics": "1.6.1",
     "@radix-ui/react-accordion": "1.2.12",
@@ -60,6 +117,10 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.0",
+    "cross-env": "^10.1.0",
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",
     "@types/react": "19.2.14",

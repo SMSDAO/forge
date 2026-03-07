@@ -1,0 +1,105 @@
+name: Desktop Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    permissions:
+      contents: write   # required to attach installers to GitHub Releases
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows (.exe)
+            os: windows-latest
+            build_flag: --win
+            artifact_name: forges-windows-installer
+            artifact_path: dist-desktop/*.exe
+
+          - name: macOS (.dmg)
+            os: macos-latest
+            build_flag: --mac
+            artifact_name: forges-macos-dmg
+            artifact_path: dist-desktop/*.dmg
+
+          - name: Linux (AppImage)
+            os: ubuntu-latest
+            build_flag: --linux
+            artifact_name: forges-linux-appimage
+            artifact_path: dist-desktop/*.AppImage
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm modules
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Next.js static export (desktop target)
+        run: pnpm run export:desktop
+        env:
+          NEXT_BUILD_TARGET: desktop
+
+      - name: Compile Electron TypeScript
+        run: pnpm run build:electron
+
+      - name: Build desktop installer (${{ matrix.name }})
+        run: pnpm exec electron-builder ${{ matrix.build_flag }} --publish never
+        env:
+          # macOS code signing (optional — skipped when secrets are absent)
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Attach installer to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact_path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
