@@ -76,7 +76,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Next.js static export (desktop target)
-        run: pnpm run export:desktop
+        run: pnpm exec next export
         env:
           NEXT_BUILD_TARGET: desktop
 
