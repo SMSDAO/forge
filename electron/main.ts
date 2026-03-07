@@ -1,10 +1,11 @@
-import { app, BrowserWindow, shell, nativeTheme } from 'electron'
+import { app, BrowserWindow, shell, nativeTheme, dialog } from 'electron'
 import path from 'path'
+import { pathToFileURL } from 'url'
 
 // Keep a global reference to prevent garbage collection.
 let mainWindow: BrowserWindow | null = null
 
-function createWindow(): void {
+async function createWindow(): Promise<void> {
   nativeTheme.themeSource = 'dark'
 
   mainWindow = new BrowserWindow({
@@ -28,11 +29,30 @@ function createWindow(): void {
   })
 
   // Load the static Next.js export bundled into the app package.
-  const indexPath = app.isPackaged
-    ? path.join(app.getAppPath(), 'out', 'index.html')
-    : path.join(process.cwd(), 'out', 'index.html')
+  const outDir = app.isPackaged
+    ? path.join(app.getAppPath(), 'out')
+    : path.join(process.cwd(), 'out')
 
-  mainWindow.loadFile(indexPath)
+  const indexPath = path.join(outDir, 'index.html')
+
+  // Normalised file:// base for the out/ directory (trailing slash prevents
+  // escaping to sibling paths like "out-extra/").
+  const outDirFileUrl = pathToFileURL(outDir).href.replace(/\/?$/, '/')
+
+  try {
+    await mainWindow.loadFile(indexPath)
+  } catch (err) {
+    dialog.showErrorBox(
+      'FORGES — Failed to load',
+      `Could not load the application UI.\n\n` +
+        `Expected: ${indexPath}\n\n` +
+        `Run 'pnpm run export:desktop' to generate the static export, ` +
+        `then try again.\n\n` +
+        String(err),
+    )
+    app.exit(1)
+    return
+  }
 
   // Open all target="_blank" links in the OS default browser rather than a
   // new Electron window, and block all other new-window requests.
@@ -44,9 +64,15 @@ function createWindow(): void {
   })
 
   // Prevent the current window from navigating away from local file:// content.
-  // Any remote http(s) navigation is opened externally instead.
+  // Only file:// URLs inside the bundled out/ directory are permitted; any
+  // remote http(s) navigation is opened externally instead.
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('file://')) {
+    if (url.startsWith('file://')) {
+      // Block file:// URLs that escape the bundled out/ directory.
+      if (!url.startsWith(outDirFileUrl)) {
+        event.preventDefault()
+      }
+    } else {
       event.preventDefault()
       if (url.startsWith('https://') || url.startsWith('http://')) {
         shell.openExternal(url)
@@ -55,7 +81,12 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.on('will-redirect', (event, url) => {
-    if (!url.startsWith('file://')) {
+    if (url.startsWith('file://')) {
+      // Block file:// redirects that escape the bundled out/ directory.
+      if (!url.startsWith(outDirFileUrl)) {
+        event.preventDefault()
+      }
+    } else {
       event.preventDefault()
       if (url.startsWith('https://') || url.startsWith('http://')) {
         shell.openExternal(url)
