@@ -29,7 +29,7 @@ function createWindow(): void {
 
   // Load the static Next.js export bundled into the app package.
   const indexPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'app', 'out', 'index.html')
+    ? path.join(app.getAppPath(), 'out', 'index.html')
     : path.join(process.cwd(), 'out', 'index.html')
 
   mainWindow.loadFile(indexPath)
