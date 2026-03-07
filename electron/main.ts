@@ -37,7 +37,8 @@ async function createWindow(): Promise<void> {
 
   // Normalised file:// base for the out/ directory (trailing slash prevents
   // escaping to sibling paths like "out-extra/").
-  const outDirFileUrl = pathToFileURL(outDir).href.replace(/\/?$/, '/')
+  const rawOutUrl = pathToFileURL(outDir).href
+  const outDirFileUrl = rawOutUrl.endsWith('/') ? rawOutUrl : rawOutUrl + '/'
 
   try {
     await mainWindow.loadFile(indexPath)
@@ -51,7 +52,8 @@ async function createWindow(): Promise<void> {
         String(err),
     )
     app.exit(1)
-    return
+    return // app.exit() is void (not never) in Electron's types; return keeps
+           // TypeScript from trying to run the rest of the function.
   }
 
   // Open all target="_blank" links in the OS default browser rather than a
