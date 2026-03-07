@@ -43,6 +43,25 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // Prevent the current window from navigating away from local file:// content.
+  // Any remote http(s) navigation is opened externally instead.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault()
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        shell.openExternal(url)
+      }
+    }
+  })
+
+  mainWindow.webContents.on('will-redirect', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault()
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        shell.openExternal(url)
+      }
+    }
+  })
   mainWindow.on('closed', () => {
     mainWindow = null
   })
