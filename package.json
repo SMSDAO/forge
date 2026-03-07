@@ -119,6 +119,7 @@
   "devDependencies": {
     "@capacitor/cli": "^6.2.0",
     "cross-env": "^10.1.0",
+    "electron": "^33.4.0",
     "electron-builder": "^25.1.8",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",
