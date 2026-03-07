@@ -49,7 +49,15 @@ pnpm run cap:open:android
 ```bash
 pnpm run build:android
 cd android
+
+# macOS / Linux
 ./gradlew assembleDebug
+
+# Windows (Command Prompt)
+gradlew.bat assembleDebug
+
+# Windows (PowerShell)
+.\gradlew.bat assembleDebug
 # → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
