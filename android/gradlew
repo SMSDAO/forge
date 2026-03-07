@@ -94,15 +94,9 @@ if "$cygwin" || "$msys" ; then
     done
 fi
 
-# Build JVM opts from env vars
-eval "set -- $(
-    printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS" |
-    xargs -n1 |
-    sed 's~[^-[:alnum:]+,./:=@_]~\\&~g;' |
-    tr '\n' ' '
-)" '"$@"'
-
-exec "$JAVACMD" "$@" \
+# Build and run the Gradle wrapper
+exec "$JAVACMD" \
+    $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
     -classpath "$CLASSPATH" \
     org.gradle.wrapper.GradleWrapperMain \
     "$@"
