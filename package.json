@@ -8,17 +8,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "export:android": "NEXT_BUILD_TARGET=android next build",
+    "export:android": "cross-env NEXT_BUILD_TARGET=android next build",
     "build:android": "pnpm run export:android && cap sync android",
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android",
-    "export:desktop": "NEXT_BUILD_TARGET=desktop next build",
+    "export:desktop": "cross-env NEXT_BUILD_TARGET=desktop next build",
     "build:electron": "tsc --project electron/tsconfig.json",
     "build:desktop": "pnpm run export:desktop && pnpm run build:electron && electron-builder",
     "build:desktop:win": "pnpm run export:desktop && pnpm run build:electron && electron-builder --win",
     "build:desktop:mac": "pnpm run export:desktop && pnpm run build:electron && electron-builder --mac",
     "build:desktop:linux": "pnpm run export:desktop && pnpm run build:electron && electron-builder --linux",
-    "dev:electron": "pnpm run export:desktop && electron ."
+    "dev:electron": "pnpm run export:desktop && pnpm run build:electron && electron ."
   },
   "build": {
     "appId": "com.smsdao.forges",
@@ -118,7 +118,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.0",
-    "electron": "^33.4.0",
+    "cross-env": "^10.1.0",
     "electron-builder": "^25.1.8",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",

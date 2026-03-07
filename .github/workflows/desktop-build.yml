@@ -76,9 +76,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Next.js static export (desktop target)
-        run: pnpm exec next export
-        env:
-          NEXT_BUILD_TARGET: desktop
+        run: pnpm run export:desktop
 
       - name: Compile Electron TypeScript
         run: pnpm run build:electron
