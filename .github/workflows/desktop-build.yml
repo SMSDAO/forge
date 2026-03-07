@@ -77,6 +77,8 @@ jobs:
 
       - name: Build Next.js static export (desktop target)
         run: pnpm run export:desktop
+        env:
+          NEXT_BUILD_TARGET: desktop
 
       - name: Compile Electron TypeScript
         run: pnpm run build:electron
