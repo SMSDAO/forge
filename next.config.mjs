@@ -12,8 +12,8 @@ const nextConfig = {
     unoptimized: true,
   },
   // Static export required when bundling the web layer into a native wrapper.
-  // Android:  NEXT_BUILD_TARGET=android pnpm run build
-  // Desktop:  NEXT_BUILD_TARGET=desktop pnpm run build
+  // Android:  pnpm run export:android
+  // Desktop:  pnpm run export:desktop
   ...(isStaticExport && {
     output: 'export',
     trailingSlash: true,

@@ -51,7 +51,7 @@ pnpm run build:desktop:linux  # → dist-desktop/*.AppImage
 | `pnpm run build:desktop:win` | Full pipeline targeting Windows |
 | `pnpm run build:desktop:mac` | Full pipeline targeting macOS |
 | `pnpm run build:desktop:linux` | Full pipeline targeting Linux |
-| `pnpm run dev:electron` | Launch Electron in development mode using the static export (run `pnpm run build:electron` first to compile Electron TypeScript) |
+| `pnpm run dev:electron` | Builds the static export, compiles Electron TypeScript, then launches Electron (full pipeline — no pre-steps required) |
 
 ---
 
