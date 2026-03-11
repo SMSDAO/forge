@@ -53,11 +53,11 @@ cd android
 # macOS / Linux
 ./gradlew assembleDebug
 
-# Windows (Command Prompt)
-gradlew.bat assembleDebug
-
-# Windows (PowerShell)
-.\gradlew.bat assembleDebug
+# Windows
+# The Gradle wrapper script in this repo is POSIX-only. On Windows, either:
+# - Open the project in Android Studio and use
+#     "Build > Build Bundle(s)/APK(s) > Build APK(s)", or
+# - Use WSL and run `./gradlew assembleDebug` from a Linux environment.
 # → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
