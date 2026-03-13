@@ -24,13 +24,16 @@ concurrency:
   group: android-build-${{ github.ref }}
   cancel-in-progress: true
 
+# Default to read-only; the release job below elevates to contents:write only
+# when a version tag is pushed.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: write   # required to attach APK to GitHub Releases
 
     steps:
       - name: Checkout repository
@@ -128,9 +131,23 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
 
+  release:
+    name: Attach APK to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write   # required to attach APK to GitHub Releases
+
+    steps:
+      - name: Download debug APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: forges-debug-apk
+          path: apk/
+
       - name: Attach APK to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: apk/app-debug.apk
           token: ${{ secrets.GITHUB_TOKEN }}

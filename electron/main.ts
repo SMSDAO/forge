@@ -100,13 +100,20 @@ async function createWindow(): Promise<void> {
   })
 }
 
+function launchWindow(): void {
+  void createWindow().catch((err) => {
+    dialog.showErrorBox('FORGES — Fatal error', String(err))
+    app.exit(1)
+  })
+}
+
 app.whenReady().then(() => {
-  createWindow()
+  launchWindow()
 
   // macOS: re-create the window when the dock icon is clicked and no other
   // windows are open.
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) launchWindow()
   })
 })
 
