@@ -89,8 +89,9 @@ jobs:
       - name: Build desktop installer (${{ matrix.name }})
         run: pnpm exec electron-builder ${{ matrix.build_flag }} --publish never
         env:
-          # macOS code signing (optional — skipped when secrets are absent)
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Disable macOS code-signing auto-discovery only when no signing
+          # certificate is configured; set CSC_LINK to enable signed builds.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK == '' && 'false' || 'true' }}
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
