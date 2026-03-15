@@ -1,0 +1,27 @@
+{
+  "name": "FORGES — Build. Deploy. Ship.",
+  "short_name": "FORGES",
+  "description": "Create and launch applications using AI, GitHub workflows, and instant cloud deployment.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#040d12",
+  "theme_color": "#040d12",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-light-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
