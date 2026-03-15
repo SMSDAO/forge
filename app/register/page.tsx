@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -54,7 +55,7 @@ export default function RegisterPage() {
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
               Already have an account?{" "}
-              <a href="/login" className="text-primary hover:underline">Sign in</a>
+              <Link href="/login" className="text-primary hover:underline">Sign in</Link>
             </p>
           </CardContent>
         </Card>

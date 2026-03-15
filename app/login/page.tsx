@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -64,7 +65,7 @@ export default function LoginPage() {
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
               New to FORGES?{" "}
-              <a href="/register" className="text-primary hover:underline">Create account</a>
+              <Link href="/register" className="text-primary hover:underline">Create account</Link>
             </p>
           </CardContent>
         </Card>
