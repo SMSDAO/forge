@@ -72,6 +72,6 @@ forge/
 
 ## Security
 
-- HTTP security headers via `middleware.ts`
+- HTTP security headers via `proxy.ts`
 - RBAC enforcement via `lib/rbac.ts`
 - Input validation via Zod schemas in `lib/actions.ts`

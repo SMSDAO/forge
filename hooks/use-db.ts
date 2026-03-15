@@ -47,6 +47,7 @@ export function useProjects(ownerId: string): UseProjectsState {
     setLoading(false)
   }, [ownerId])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetch() }, [fetch])
 
   return { projects, loading, error, refetch: fetch }
@@ -83,6 +84,7 @@ export function useProject(id: string): UseProjectState {
     setLoading(false)
   }, [id])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetch() }, [fetch])
 
   return { project, loading, error, refetch: fetch }
@@ -122,6 +124,7 @@ export function useProjectFiles(projectId: string): UseProjectFilesState {
     setLoading(false)
   }, [projectId])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetch() }, [fetch])
 
   const createFile = useCallback(async (path: string, language: string, content = ""): Promise<ProjectFile | null> => {
@@ -185,6 +188,7 @@ export function useDeployments(projectId: string): UseDeploymentsState {
     setLoading(false)
   }, [projectId])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetch() }, [fetch])
 
   return { deployments, loading, error, refetch: fetch }
@@ -213,6 +217,7 @@ export function useMessages(projectId: string, threadId?: string): UseMessagesSt
 
   useEffect(() => {
     if (!projectId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([])
       setError(null)
       setLoading(false)

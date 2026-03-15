@@ -221,7 +221,7 @@ export function AdminDashboard() {
             </Card>
             <Card className="border-border/50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">This Month's Cost</CardTitle>
+                <CardTitle className="text-sm">This Month&apos;s Cost</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">$312.40</div>

@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server"
  * Security middleware for FORGES.
  * Adds HTTP security headers to all responses.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const response = NextResponse.next()
 
   // X-Frame-Options: prevent clickjacking

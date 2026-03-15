@@ -62,7 +62,7 @@ export function UserDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Welcome back, User</h1>
-          <p className="text-muted-foreground">Here's what's happening with your projects.</p>
+          <p className="text-muted-foreground">Here&apos;s what&apos;s happening with your projects.</p>
         </div>
         <Badge variant="outline" className="border-cyan-400/50 text-cyan-400">
           Free Plan
