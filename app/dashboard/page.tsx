@@ -1,4 +1,5 @@
 import { Metadata } from "next"
+import { AppShell } from "@/components/shell/app-shell"
 import { UserDashboard } from "@/components/dashboard/user-dashboard"
 
 export const metadata: Metadata = {
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 }
 
 export default function DashboardPage() {
-  return <UserDashboard />
+  return <AppShell><UserDashboard /></AppShell>
 }
