@@ -1,23 +1,12 @@
 import { Metadata } from "next"
-import { ProjectDashboard } from "@/components/dashboard/project-dashboard"
-import { actionListProjects, actionListDeployments } from "@/lib/actions"
+import { AppShell } from "@/components/shell/app-shell"
+import { UserDashboard } from "@/components/dashboard/user-dashboard"
 
 export const metadata: Metadata = {
-  title: "FORGES — Project Dashboard",
-  description:
-    "Manage your projects, deployments, pull requests, and team in one place.",
+  title: "FORGES — Dashboard",
+  description: "Your personal FORGES dashboard with project overview, activity metrics, and usage.",
 }
 
-export default async function DashboardPage() {
-  const [projectsResult, deploymentsResult] = await Promise.all([
-    actionListProjects("user-1"),
-    actionListDeployments("proj-1"),
-  ])
-
-  return (
-    <ProjectDashboard
-      initialProjects={projectsResult.data ?? []}
-      initialDeployments={deploymentsResult.data ?? []}
-    />
-  )
+export default function DashboardPage() {
+  return <AppShell><UserDashboard /></AppShell>
 }

@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server"
 
-export interface HealthResponse {
-  status: "ok"
-  version: string
-  timestamp: string
-}
+export const runtime = "nodejs"
 
 export async function GET() {
-  const response: HealthResponse = {
+  return NextResponse.json({
     status: "ok",
-    version: process.env.npm_package_version ?? "0.1.0",
+    version: "1.0.0",
     timestamp: new Date().toISOString(),
-  }
-  return NextResponse.json(response)
+    uptime: process.uptime(),
+  })
 }

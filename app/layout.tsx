@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'FORGES — Build. Deploy. Ship.',
   description: 'Create and launch applications using AI, GitHub workflows, and instant cloud deployment.',
   generator: 'FORGES',
+  manifest: '/manifest.json',
   icons: {
     icon: [
       {
@@ -40,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="font-sans antialiased overflow-hidden">
+      <body className="font-sans antialiased">
         {children}
         <Analytics />
       </body>
