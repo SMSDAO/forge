@@ -23,19 +23,25 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { WORKSPACE_ROLES, type WorkspaceRole } from "@/lib/rbac"
 
 export function IdeHeader({
   onToggleSidebar,
   onOpenCopilot,
   onOpenBuilder,
   projectName = "my-forge-app",
+  role = "developer",
+  onRoleChange,
 }: {
   onToggleSidebar?: () => void
   onOpenCopilot?: () => void
   onOpenBuilder?: () => void
   projectName?: string
+  role?: WorkspaceRole
+  onRoleChange?: (role: WorkspaceRole) => void
 }) {
   const [showProjectMenu, setShowProjectMenu] = useState(false)
+  const [showRoleMenu, setShowRoleMenu] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState(false)
   const [isRunning, setIsRunning] = useState(true)
@@ -250,9 +256,15 @@ export function IdeHeader({
         <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="Settings">
           <Settings className="size-3.5" />
         </button>
-        <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center ml-0.5 cursor-pointer hover:border-primary/50 transition-colors">
-          <span className="text-[10px] font-semibold text-primary">U</span>
-        </div>
+          <div className="relative">
+            <button onClick={() => setShowRoleMenu(!showRoleMenu)} className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center ml-0.5 cursor-pointer hover:border-primary/50 transition-colors" aria-label={`Workspace role: ${WORKSPACE_ROLES[role].label}`}>
+              <span className="text-[10px] font-semibold text-primary">{WORKSPACE_ROLES[role].label.slice(0, 1)}</span>
+            </button>
+            {showRoleMenu && <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-primary/20 bg-card p-1.5 shadow-xl z-50">
+              <p className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">Workspace role</p>
+              {(Object.keys(WORKSPACE_ROLES) as WorkspaceRole[]).map((key) => <button key={key} onClick={() => { onRoleChange?.(key); setShowRoleMenu(false) }} className={cn("w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-primary/10", key === role && "bg-primary/10 text-primary")}>{WORKSPACE_ROLES[key].label}<span className="block text-[10px] text-muted-foreground">{WORKSPACE_ROLES[key].description}</span></button>)}
+            </div>}
+          </div>
       </div>
     </header>
   )

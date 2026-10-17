@@ -14,6 +14,7 @@ import { MobileNav, type MobileTab } from "./mobile-nav"
 import { CopilotOverlay } from "./copilot-overlay"
 import { SmartBuilder } from "./smart-builder"
 import { cn } from "@/lib/utils"
+import { type WorkspaceRole } from "@/lib/rbac"
 import {
   Search, GitBranch, Terminal, Blocks, Database, Shield, Globe,
   Sparkles, X, Check, FolderTree, Settings, Filter, Bug,
@@ -30,6 +31,7 @@ export function IdeLayout() {
   const [showSidebar, setShowSidebar] = useState(true)
   const [showCopilot, setShowCopilot] = useState(false)
   const [showBuilder, setShowBuilder] = useState(false)
+  const [workspaceRole, setWorkspaceRole] = useState<WorkspaceRole>("developer")
 
   // Ctrl+K shortcut
   useEffect(() => {
@@ -96,6 +98,8 @@ export function IdeLayout() {
         onToggleSidebar={() => setShowSidebar(!showSidebar)}
         onOpenCopilot={() => setShowCopilot(true)}
         onOpenBuilder={() => setShowBuilder(true)}
+        role={workspaceRole}
+        onRoleChange={setWorkspaceRole}
       />
 
       {/* ═══════ Desktop ═══════ */}
@@ -478,11 +482,11 @@ export function CloudTerminalPanel() {
 
 /* ═══════════════════════════════════════════════════════════
    Extensions Panel
-═══════════════════════════════════════════════════════════ */
+════════════════════��══════════════════════════════════════ */
 function ExtensionsPanel() {
   const [installStates, setInstallStates] = useState<Record<string, "idle" | "installing" | "installed">>({})
   const extensions = [
-    { name: "AI Copilot", desc: "Inline code suggestions powered by AI", installed: true, color: "#22c55e", version: "3.2.1" },
+    { name: "AI Copilot", desc: "Inline code suggestions powered by AI", installed: true, color: "#00d1ff", version: "3.2.1" },
     { name: "Tailwind IntelliSense", desc: "Autocomplete for Tailwind classes", installed: true, color: "#38bdf8", version: "4.0.0" },
     { name: "ESLint", desc: "JavaScript linter for code quality", installed: true, color: "#4b32c3", version: "9.5.0" },
     { name: "Prettier", desc: "Opinionated code formatter", installed: true, color: "#f7b93e", version: "3.4.0" },
