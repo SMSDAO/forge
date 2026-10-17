@@ -403,9 +403,18 @@ export function CodeEditor({
       <div className="flex items-center bg-panel-header border-b border-border shrink-0">
         <div className="flex items-center flex-1 min-w-0 tab-row">
           {openTabs.map(name => (
-            <button
+            <div
               key={name}
+              role="tab"
+              aria-selected={activeFile === name}
+              tabIndex={activeFile === name ? 0 : -1}
               onClick={() => onFileChange(name)}
+              onKeyDown={event => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault()
+                  onFileChange(name)
+                }
+              }}
               className={cn(
                 "relative flex items-center gap-1.5 px-3 h-9 text-xs border-r border-border whitespace-nowrap transition-colors shrink-0 group",
                 activeFile === name ? "bg-editor-bg text-foreground" : "text-muted-foreground hover:text-foreground bg-panel-header"
@@ -420,7 +429,7 @@ export function CodeEditor({
               <button onClick={e => closeTab(name, e)} className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent/50 shrink-0 ml-0.5 transition-opacity" aria-label={`Close ${name}`}>
                 <X className="size-3" />
               </button>
-            </button>
+            </div>
           ))}
         </div>
         <div className="flex items-center gap-0.5 px-1.5 shrink-0 border-l border-border">
